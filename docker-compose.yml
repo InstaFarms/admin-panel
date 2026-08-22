@@ -1,0 +1,17 @@
+services:
+  admin-panel:
+    container_name: admin-panel
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - ./.env
+    environment:
+      # host.docker.internal lets code running inside this container reach
+      # if-api on the host machine — plain "localhost" would mean "this
+      # container" instead. Needs a Windows Firewall rule allowing inbound
+      # on this port range since this isn't loopback traffic.
+      NEXT_PUBLIC_DEV_BASE_URL: http://host.docker.internal:3101
+    ports:
+      - '3100:3100'
+    restart: unless-stopped
