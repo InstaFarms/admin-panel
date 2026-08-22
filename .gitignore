@@ -1,0 +1,40 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Runtime-generated logs (e.g. watermark-regen log written to local disk)
+.data
+
+# Local env files.
+#
+# Ignore every .env variant and re-allow only the committed templates.
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.local.example
+
+# Testing
+coverage
+
+# Vercel
+.vercel
+
+# Build Outputs
+.next/
+out/
+build
+dist
+*.tsbuildinfo
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+.DS_Store
+*.pem

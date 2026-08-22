@@ -1,0 +1,361 @@
+.page {
+  --bg: #0a0e16;
+  --panel: #111722;
+  --panel-2: #141b28;
+  --field: #283242;
+  --field-border: #3a4658;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.12);
+  --ink: #eef2f8;
+  --ink-2: #b7c0d0;
+  --muted: #8590a3;
+  --dim: #5e6678;
+  --blue: #2f6df6;
+  --blue-bright: #4f8bff;
+  --blue-soft: rgba(47, 109, 246, 0.14);
+  --emerald: #18b981;
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.8);
+  color: var(--ink);
+  padding: 24px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--ink);
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.breadcrumbsCurrent {
+  color: var(--ink-2);
+}
+
+.pageDescription {
+  margin: 12px 0 0;
+  max-width: 620px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.searchForm {
+  display: flex;
+  align-items: stretch;
+  height: 44px;
+  width: min(100%, 460px);
+  min-width: 320px;
+  overflow: hidden;
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-sm);
+  background: var(--field);
+}
+
+.searchSelectWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 112px;
+  flex: 0 0 112px;
+  border-right: 1px solid var(--field-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.searchSelect {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 0 34px 0 14px;
+  font-size: 14px;
+  font-weight: 700;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+}
+
+.searchSelectIcon {
+  position: absolute;
+  right: 12px;
+  color: var(--ink-2);
+  pointer-events: none;
+}
+
+.searchInput {
+  min-width: 0;
+  flex: 1;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 0 14px;
+  font-size: 14px;
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: var(--dim);
+}
+
+.searchButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 100%;
+  border: 0;
+  background: var(--blue);
+  color: #fff;
+}
+
+.createButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: var(--blue);
+  color: #fff;
+  padding: 0 20px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 10px 22px -12px rgba(47, 109, 246, 0.9);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.statCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+
+.statIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--blue-soft);
+  color: var(--blue-bright);
+}
+
+.statLabel {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.statValue {
+  margin-top: 4px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.panel {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px 12px;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.panelSub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableHeadCell {
+  background: #121925;
+  padding: 15px 18px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tableCell {
+  padding: 18px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--ink-2);
+  vertical-align: middle;
+}
+
+.tableRow:hover {
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.landmarkCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.landmarkAvatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--blue-soft);
+  color: var(--blue-bright);
+  flex: 0 0 auto;
+}
+
+.landmarkName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.landmarkSlug,
+.locationSlug {
+  margin-top: 4px;
+  font-family: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.locationName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.roleStack {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+}
+
+.emptyValue {
+  color: var(--muted);
+}
+
+.actionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--blue);
+  color: #fff;
+  text-decoration: none;
+}
+
+.emptyRow {
+  padding: 36px 18px;
+  text-align: center;
+  color: var(--muted);
+}
+
+@media (max-width: 1080px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 960px) {
+  .pageHeader {
+    flex-direction: column;
+  }
+
+  .toolbar {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .searchForm {
+    min-width: 0;
+    width: 100%;
+  }
+}

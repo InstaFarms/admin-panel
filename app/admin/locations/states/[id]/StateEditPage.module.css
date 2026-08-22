@@ -1,0 +1,427 @@
+.editRoot {
+  --bg: #060a12;
+  --bg-deep: #03060d;
+  --panel: #111722;
+  --panel-2: #141b28;
+  --card: #161e2c;
+  --card-hover: #1a2230;
+  --inset: #0c1320;
+  --field: #283242;
+  --field-border: #3a4658;
+  --field-focus: #4f7cff;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.12);
+  --ink: #eef2f8;
+  --ink-2: #b7c0d0;
+  --muted: #8590a3;
+  --dim: #5e6678;
+  --blue: #2f6df6;
+  --blue-bright: #4f8bff;
+  --blue-soft: rgba(47, 109, 246, 0.14);
+  --teal: #2fd4e6;
+  --teal-soft: rgba(47, 212, 230, 0.12);
+  --emerald: #18b981;
+  --emerald-soft: rgba(24, 185, 129, 0.12);
+  --amber: #e0a23a;
+  --amber-soft: rgba(224, 162, 58, 0.12);
+  --red: #ef4655;
+  --red-soft: rgba(239, 70, 85, 0.14);
+  --field-focus-fill: #2d3849;
+  --switch-track-bg: #38445a;
+  --success-ink: #052016;
+  --teal-ink: #06222a;
+  --emerald-strong: #5fe3b6;
+  --danger-strong: #ff8a94;
+  --radius: 14px;
+  --radius-sm: 9px;
+  --radius-xs: 7px;
+  --shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.8);
+}
+
+.menuWrap {
+  position: relative;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: 220px;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  box-shadow: 0 24px 50px -20px rgba(0, 0, 0, 0.85);
+  overflow: hidden;
+}
+
+.menuItem {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  padding: 10px;
+  color: var(--ink-2);
+  text-align: left;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.menuItem:hover {
+  background: var(--card-hover);
+  color: #fff;
+}
+
+.dangerMenuItem {
+  color: var(--danger-strong);
+}
+
+.dangerMenuItem:hover {
+  background: var(--red-soft);
+}
+
+.scopeBar {
+  margin-bottom: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--inset);
+  padding: 8px;
+}
+
+.scopeDivider {
+  width: 1px;
+  height: 26px;
+  background: var(--line);
+  margin: 0 2px;
+}
+
+.scopeButton {
+  display: inline-flex;
+  height: 44px;
+  align-items: center;
+  gap: 9px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  padding: 0 16px;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 700;
+  transition: color 0.15s;
+}
+
+.scopeButton:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+}
+
+.scopeBaseActive,
+.scopeBrandActive {
+  background: var(--card);
+  color: #fff;
+  box-shadow: 0 6px 14px -10px rgba(0, 0, 0, 0.7);
+}
+
+.scopeBaseActive {
+  border-color: var(--teal);
+}
+
+.scopeBrandActive {
+  border-color: var(--blue);
+}
+
+.scopeButtonCompleteDot,
+.scopeButtonDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--dim);
+}
+
+.scopeButtonCompleteDot {
+  background: var(--emerald);
+}
+
+.scopeSpacer {
+  flex: 1;
+  min-width: 12px;
+}
+
+.scopeAddWrap {
+  position: relative;
+}
+
+.scopeAdd {
+  display: inline-flex;
+  height: 44px;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px dashed var(--field-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  padding: 0 16px;
+  color: var(--emerald);
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.scopeAdd:hover {
+  background: var(--emerald-soft);
+  border-color: rgba(24, 185, 129, 0.5);
+}
+
+.scopeAdd:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 40;
+  width: 300px;
+  padding: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: 0 24px 50px -20px rgba(0, 0, 0, 0.85);
+  overflow: hidden;
+}
+
+.popoverHeader {
+  padding: 8px 8px 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.popoverItem {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 11px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  padding: 9px 8px;
+  color: var(--ink);
+  text-align: left;
+}
+
+.popoverItem:hover {
+  background: var(--card-hover);
+}
+
+.popoverName {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.popoverCategory {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.popoverEmpty {
+  padding: 16px 8px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 13px;
+}
+
+.baseLayout {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.baseMain {
+  min-width: 0;
+  flex: 1;
+}
+
+.baseSide {
+  position: sticky;
+  top: 24px;
+  width: 312px;
+  flex: 0 0 312px;
+}
+
+.brandsOverviewRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--inset);
+  padding: 14px 16px;
+}
+
+.brandsOverviewRow + .brandsOverviewRow {
+  margin-top: 10px;
+}
+
+.brandsOverviewName {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.brandsOverviewSub {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.classGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.classCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--inset);
+  padding: 12px 14px;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: 0.15s;
+}
+
+.classCard:hover {
+  border-color: var(--line-strong);
+}
+
+.classCardOn {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  color: #fff;
+}
+
+.classBox {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1.5px solid var(--field-border);
+  border-radius: 6px;
+  color: transparent;
+}
+
+.classCardOn .classBox {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #fff;
+}
+
+.dangerZone {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--red-soft);
+  border-radius: var(--radius);
+  background: rgba(239, 70, 85, 0.05);
+  padding: 16px 18px;
+}
+
+.dangerTitle {
+  color: var(--danger-strong);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.dangerDescription {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.saveBar {
+  position: fixed;
+  left: 64px;
+  right: 0;
+  bottom: 22px;
+  z-index: 50;
+  margin: 0 auto;
+  display: flex;
+  width: min(720px, calc(100vw - 140px));
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: rgba(20, 27, 40, 0.92);
+  padding: 12px 14px 12px 20px;
+  box-shadow: 0 22px 48px -16px rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+.saveInfo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.saveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--amber);
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 60;
+  display: inline-flex;
+  transform: translateX(-50%);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(24, 185, 129, 0.4);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  padding: 13px 18px;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 700;
+  box-shadow: 0 18px 40px -14px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+}
+
+.toastIcon {
+  display: grid;
+  place-items: center;
+  color: var(--emerald);
+}
+
+@media (max-width: 1080px) {
+  .baseSide {
+    display: none;
+  }
+
+  .classGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

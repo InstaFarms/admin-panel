@@ -1,0 +1,395 @@
+@import "tailwindcss";
+@plugin "flowbite-react/plugin/tailwindcss";
+@source "../.flowbite-react/class-list.json";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@keyframes jarvisBar {
+  0%,
+  100% {
+    transform: translateX(-24px);
+  }
+  50% {
+    transform: translateX(24px);
+  }
+}
+
+@keyframes jarvisLetterWave {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes beamSweep {
+  0% {
+    transform: translateX(-30vw) skewX(-18deg);
+  }
+  100% {
+    transform: translateX(130vw) skewX(-18deg);
+  }
+}
+
+@keyframes jarvisShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-8px);
+  }
+  40% {
+    transform: translateX(8px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+/* Custom Scrollbar Styles */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(203 213 225) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgb(203 213 225);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgb(148 163 184);
+  background-clip: padding-box;
+}
+
+/* Dark mode scrollbar */
+.dark * {
+  scrollbar-color: rgb(51 65 85) transparent;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background: rgb(51 65 85);
+  background-clip: padding-box;
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background: rgb(71 85 105);
+  background-clip: padding-box;
+}
+
+/* Thinner scrollbar for sidebar (must be the scroll container) */
+.sidebar-scroll {
+  scrollbar-width: thin;
+}
+
+/* Hide scrollbar when sidebar is collapsed (icon-only strip) */
+.sidebar-scroll-collapsed {
+  scrollbar-width: none;
+}
+.sidebar-scroll-collapsed::-webkit-scrollbar {
+  display: none;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px !important;
+  height: 4px !important;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgb(203 213 225);
+  border-radius: 4px;
+  border: 0 solid transparent;
+  background-clip: padding-box;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgb(148 163 184);
+  background-clip: padding-box;
+}
+
+.dark .sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgb(51 65 85);
+}
+
+.dark .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgb(71 85 105);
+}
+
+/* Align sidebar group triggers with normal items: same icon column + label line */
+.sidebar-scroll nav li > a > *:first-child,
+.sidebar-scroll nav li > button > *:first-child {
+  width: 2.5rem;
+  min-width: 2.5rem;
+  flex-shrink: 0;
+}
+.sidebar-scroll nav li > a,
+.sidebar-scroll nav li > button {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+.sidebar-scroll nav li > a [data-testid="flowbite-sidebar-item-content"],
+.sidebar-scroll nav li > button > span:nth-child(2) {
+  padding-left: 0.75rem;
+  min-width: 0;
+}
+
+/* Active state: same blue as collapsed sidebar (expanded view) */
+.sidebar-scroll nav li > a[aria-current="page"],
+.sidebar-scroll nav li > a.bg-blue-600 {
+  background-color: rgb(37 99 235) !important;
+  color: white !important;
+}
+.sidebar-scroll nav li > a[aria-current="page"]:hover,
+.sidebar-scroll nav li > a.bg-blue-600:hover {
+  background-color: rgb(29 78 216) !important;
+  color: white !important;
+}
+.dark .sidebar-scroll nav li > a[aria-current="page"],
+.dark .sidebar-scroll nav li > a.bg-blue-600 {
+  background-color: rgb(37 99 235) !important;
+  color: white !important;
+}
+.dark .sidebar-scroll nav li > a[aria-current="page"]:hover,
+.dark .sidebar-scroll nav li > a.bg-blue-600:hover {
+  background-color: rgb(59 130 246) !important;
+  color: white !important;
+}
+
+/* Jodit Editor List Fixes */
+.jodit-wysiwyg ul {
+  list-style-type: disc !important;
+  padding-left: 2.5rem !important;
+}
+
+.jodit-wysiwyg ol {
+  list-style-type: decimal !important;
+  padding-left: 2.5rem !important;
+}
+
+.jodit-wysiwyg ul li,
+.jodit-wysiwyg ol li {
+  list-style-position: outside;
+}
+
+.cms-content-preview {
+  color: rgb(51 65 85);
+}
+
+.cms-content-preview h1,
+.cms-content-preview h2,
+.cms-content-preview h3,
+.cms-content-preview h4,
+.cms-content-preview h5,
+.cms-content-preview h6,
+.cms-content-preview strong,
+.cms-content-preview b {
+  color: rgb(15 23 42);
+}
+
+.cms-content-preview a {
+  color: rgb(37 99 235);
+}
+
+.cms-content-preview hr {
+  border-color: rgb(203 213 225);
+}
+
+.dark .cms-content-preview {
+  color: rgb(226 232 240);
+}
+
+.dark .cms-content-preview h1,
+.dark .cms-content-preview h2,
+.dark .cms-content-preview h3,
+.dark .cms-content-preview h4,
+.dark .cms-content-preview h5,
+.dark .cms-content-preview h6,
+.dark .cms-content-preview strong,
+.dark .cms-content-preview b {
+  color: rgb(248 250 252);
+}
+
+.dark .cms-content-preview a {
+  color: rgb(125 211 252);
+}
+
+.dark .cms-content-preview hr {
+  border-color: rgb(71 85 105);
+}
+
+.navbar-theme-toggle button {
+  background: transparent !important;
+  border: 1px solid rgb(226 232 240) !important;
+  border-radius: 0.875rem !important;
+  color: rgb(100 116 139) !important;
+  box-shadow: none !important;
+  padding: 0.7rem !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease !important;
+}
+
+.navbar-theme-toggle button:hover {
+  background: rgb(248 250 252) !important;
+  border-color: rgb(203 213 225) !important;
+  color: rgb(51 65 85) !important;
+}
+
+.navbar-theme-toggle button:focus,
+.navbar-theme-toggle button:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgb(59 130 246 / 0.18) !important;
+  border-color: rgb(96 165 250) !important;
+}
+
+.dark .navbar-theme-toggle button {
+  border-color: rgb(63 63 70) !important;
+  color: rgb(161 161 170) !important;
+}
+
+.dark .navbar-theme-toggle button:hover {
+  background: rgb(39 39 42) !important;
+  border-color: rgb(82 82 91) !important;
+  color: rgb(244 244 245) !important;
+}
+
+.admin-content-area {
+  --admin-table-bg: #ffffff;
+  --admin-table-head: #e8edf5;
+  --admin-table-line: rgba(15, 23, 42, 0.09);
+  --admin-table-ink: #172033;
+  --admin-table-ink-2: #334155;
+  --admin-table-muted: #64748b;
+  --admin-table-link: #2f6df6;
+  --admin-table-hover: rgba(47, 109, 246, 0.04);
+}
+
+.dark .admin-content-area {
+  --admin-table-bg: #111722;
+  --admin-table-head: #121925;
+  --admin-table-line: rgba(255, 255, 255, 0.07);
+  --admin-table-ink: #eef2f8;
+  --admin-table-ink-2: #b7c0d0;
+  --admin-table-muted: #8590a3;
+  --admin-table-link: #4f8bff;
+  --admin-table-hover: rgba(255, 255, 255, 0.018);
+}
+
+.admin-content-area .overflow-hidden.rounded-xl:has(table),
+.admin-content-area .overflow-hidden.rounded-xl:has(.overflow-x-auto > table) {
+  border: 1px solid var(--admin-table-line) !important;
+  background: var(--admin-table-bg) !important;
+  box-shadow: none !important;
+}
+
+.admin-content-area .overflow-x-auto > table,
+.admin-content-area table.min-w-full {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--admin-table-bg);
+}
+
+.admin-content-area table thead th {
+  background: var(--admin-table-head) !important;
+  padding: 15px 18px !important;
+  text-align: left !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.8px !important;
+  text-transform: uppercase !important;
+  color: var(--admin-table-muted) !important;
+  white-space: nowrap;
+}
+
+.admin-content-area table tbody td {
+  padding: 18px !important;
+  border-top: 1px solid var(--admin-table-line) !important;
+  font-size: 14px !important;
+  color: var(--admin-table-ink-2) !important;
+  vertical-align: middle !important;
+}
+
+.admin-content-area table tbody tr {
+  background: transparent !important;
+}
+
+.admin-content-area table tbody tr:hover {
+  background: var(--admin-table-hover) !important;
+}
+
+.admin-content-area table a {
+  color: var(--admin-table-link) !important;
+}
+
+.admin-content-area table .text-gray-900,
+.admin-content-area table .text-gray-800,
+.admin-content-area table .text-gray-700,
+.admin-content-area table .text-gray-600,
+.admin-content-area table .text-gray-500,
+.admin-content-area table .text-gray-400,
+.admin-content-area table .dark\:text-white,
+.admin-content-area table .dark\:text-gray-300,
+.admin-content-area table .dark\:text-gray-400,
+.admin-content-area table .dark\:text-gray-500 {
+  color: var(--admin-table-ink-2) !important;
+}
+
+.admin-content-area table .font-mono {
+  color: var(--admin-table-muted) !important;
+}
+
+/* Milestone Priority table only: lighter "elevated card" dark background
+   (matches the stat cards above it) instead of blending into the page bg -
+   scoped via this class so it doesn't affect any other admin table. */
+.dark .milestone-priority-card {
+  --admin-table-bg: #1f2937;
+  --admin-table-head: #26313f;
+  --admin-table-line: rgba(255, 255, 255, 0.08);
+}
+
+/* Force-override: Flowbite's Card ships its own baked-in
+   dark:border-gray-700 on this exact element (data-testid="flowbite-card"),
+   which wins over plain className overrides. Target it directly. */
+.dark .milestone-priority-card[data-testid="flowbite-card"] {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Compact dropdown styling */
+/* [data-testid="flowbite-dropdown"] {
+  max-height: 80px !important;
+  overflow-y: auto !important;
+}
+
+[data-testid="flowbite-dropdown"] [role="menu"] {
+  padding: 0 !important;
+  max-height: 80px !important;
+}
+
+[data-testid="flowbite-dropdown"] [role="menuitem"] {
+  padding: 4px 12px !important;
+  font-size: 14px !important;
+} */

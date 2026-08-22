@@ -1,0 +1,148 @@
+import Link from "next/link";
+import { HiPencil } from "react-icons/hi";
+
+import { AgreementModel } from "@/actions/agreementModelActions";
+import DeleteAgreementModelButton from "@/components/agreement-models/DeleteAgreementModelButton";
+import {
+  Badge,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeadCell,
+  TableRow,
+} from "flowbite-react";
+
+type AgreementModelsTableProps = {
+  rows: AgreementModel[];
+  offset: number;
+  emptyMessage: string;
+};
+
+function formatDate(value?: string) {
+  if (!value) return "N/A";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "N/A";
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+export default function AgreementModelsTable({
+  rows,
+  offset,
+  emptyMessage,
+}: AgreementModelsTableProps) {
+  return (
+    <div className="w-full overflow-hidden rounded-xl bg-slate-100 p-3 sm:p-5 dark:bg-gray-900">
+      <div className="overflow-x-auto">
+        <Table className="min-w-full">
+          <TableHead>
+            <TableRow>
+              <TableHeadCell className="whitespace-nowrap">
+                S. No.
+              </TableHeadCell>
+              <TableHeadCell className="whitespace-nowrap">Name</TableHeadCell>
+              <TableHeadCell className="whitespace-nowrap">Code</TableHeadCell>
+              <TableHeadCell className="whitespace-nowrap">
+                Description
+              </TableHeadCell>
+              <TableHeadCell className="whitespace-nowrap">
+                Basis
+              </TableHeadCell>
+              <TableHeadCell className="whitespace-nowrap">
+                Status
+              </TableHeadCell>
+              <TableHeadCell className="whitespace-nowrap">
+                Created
+              </TableHeadCell>
+              <TableHeadCell className="whitespace-nowrap">
+                Actions
+              </TableHeadCell>
+            </TableRow>
+          </TableHead>
+          <TableBody className="divide-y">
+            {rows.length > 0 ? (
+              rows.map((row, index) => (
+                <TableRow
+                  key={row.id}
+                  className="bg-white transition-colors duration-150 hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+                >
+                  <TableCell className="whitespace-nowrap">
+                    {offset + index + 1}
+                  </TableCell>
+                  <TableCell className="min-w-[180px] font-medium text-gray-900 dark:text-white">
+                    {row.name}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs whitespace-nowrap text-gray-700 dark:text-gray-300">
+                    {row.code}
+                  </TableCell>
+                  <TableCell className="min-w-[260px] text-gray-600 dark:text-gray-300">
+                    <div className="max-w-[420px] truncate">
+                      {row.description || "N/A"}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-2">
+                      {row.isRentBasisModel ? (
+                        <Badge color="purple" className="w-fit">
+                          RENT
+                        </Badge>
+                      ) : null}
+                      {row.isExpensesBasisModel ? (
+                        <Badge color="info" className="w-fit">
+                          EXPENSES
+                        </Badge>
+                      ) : null}
+                      {!row.isRentBasisModel && !row.isExpensesBasisModel ? (
+                        <Badge color="gray" className="w-fit">
+                          NONE
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      color={row.isActive ? "success" : "gray"}
+                      className="w-fit"
+                    >
+                      {row.isActive ? "ACTIVE" : "INACTIVE"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {formatDate(row.createdAt)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Link
+                        href={`/admin/agreement-models/${row.id}`}
+                        className="rounded-md bg-blue-600 p-1 text-white transition-colors hover:bg-blue-700"
+                        title="Edit"
+                      >
+                        <HiPencil size={20} />
+                      </Link>
+                      {row.isActive && (
+                        <DeleteAgreementModelButton id={row.id} />
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={8}
+                  className="py-4 text-center text-gray-500 dark:text-gray-400"
+                >
+                  {emptyMessage}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,468 @@
+.editor {
+  --panel: #111722;
+  --card: #161e2c;
+  --card-hover: #1a2230;
+  --inset: #0c1320;
+  --field: #283242;
+  --field-border: #3a4658;
+  --field-focus: #4f7cff;
+  --field-focus-fill: #2d3849;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.12);
+  --ink: #eef2f8;
+  --ink-2: #b7c0d0;
+  --muted: #8590a3;
+  --dim: #5e6678;
+  --blue: #2f6df6;
+  --blue-bright: #4f8bff;
+  --blue-soft: rgba(47, 109, 246, 0.14);
+  --teal: #2fd4e6;
+  --amber: #e0a23a;
+  --red: #ef4655;
+  --red-soft: rgba(239, 70, 85, 0.14);
+  --radius: 14px;
+  --radius-sm: 9px;
+  --radius-xs: 7px;
+  --shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.8);
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color: var(--ink);
+}
+
+.layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+.side {
+  width: 320px;
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: 24px;
+}
+
+.panel,
+.card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.panel {
+  background: var(--panel);
+}
+
+.card {
+  background: var(--card);
+}
+
+.cardPad {
+  padding: 24px 26px;
+}
+
+.card + .card {
+  margin-top: 20px;
+}
+
+.sectionHeader {
+  margin-bottom: 20px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+
+.sectionTitle {
+  margin: 8px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+
+.sectionSub {
+  margin: 8px 0 0;
+  max-width: 680px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fieldLabel {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.fieldOptional {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+.hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.input,
+.searchInput {
+  width: 100%;
+  height: 46px;
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-xs);
+  background: var(--field);
+  color: var(--ink);
+  padding: 0 14px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.input:focus,
+.searchInput:focus {
+  border-color: var(--field-focus);
+  box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.18);
+  background: var(--field-focus-fill);
+}
+
+.input::placeholder,
+.searchInput::placeholder {
+  color: var(--dim);
+}
+
+.inputMono {
+  font-family: var(--mono);
+}
+
+.inputPrefixWrap {
+  position: relative;
+}
+
+.inputPrefix {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--mono);
+  color: var(--teal);
+  pointer-events: none;
+}
+
+.inputPrefixed {
+  padding-left: 30px;
+}
+
+.searchWrap {
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  padding-left: 40px;
+}
+
+.locationList {
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.locationRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  text-align: left;
+  background: var(--inset);
+  border: none;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  transition: background 0.12s;
+  width: 100%;
+}
+
+.locationRow:last-child {
+  border-bottom: none;
+}
+
+.locationRow:hover {
+  background: var(--card-hover);
+}
+
+.locationRowSelected {
+  background: var(--blue-soft);
+}
+
+.locationRowSelected .locationRowName {
+  color: var(--blue);
+}
+
+.locationRowDot {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blue);
+}
+
+.locationRowSelected .locationRowDot {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+
+.locationRowName {
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+  min-width: 120px;
+}
+
+.locationRowMid {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+}
+
+.locationRowPath {
+  flex: 1;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.locationRowSlug {
+  flex: 1;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
+  margin-left: 16px;
+}
+
+.locationRowMeta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.summaryMono {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tagChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  padding: 0 7px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink-2);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 18px;
+  border-radius: 999px;
+  padding: 0 7px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.primaryButton,
+.deleteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 42px;
+  padding: 0 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 700;
+  transition: 0.15s;
+}
+
+.primaryButton {
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 10px 22px -12px rgba(47, 109, 246, 0.9);
+}
+
+.primaryButton:disabled,
+.deleteButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.deleteButton {
+  background: var(--red-soft);
+  color: var(--red);
+  border-color: rgba(239, 70, 85, 0.26);
+}
+
+.summaryItem {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.summaryItem:last-child {
+  border-bottom: none;
+}
+
+.summaryKey {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.summaryValue {
+  margin-top: 5px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.summaryEmpty {
+  color: var(--dim);
+  font-style: italic;
+  font-weight: 500;
+}
+
+.locationSummaryName {
+  margin-top: 5px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.locationSummarySlug {
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tipHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tipIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--blue-soft);
+  color: var(--blue-bright);
+}
+
+.tipList {
+  margin: 14px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.emptyState {
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 18px;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 1080px) {
+  .layout {
+    flex-direction: column;
+  }
+
+  .side {
+    width: 100%;
+    position: static;
+  }
+}
+
+@media (max-width: 820px) {
+  .fieldGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,151 @@
+/*
+ * Scoped design tokens for the Create Booking Wizard, mirroring the
+ * "Create Booking Wizard.dc.html" design mock 1:1. Deliberately NOT wired
+ * into the app's global Flowbite dark: class system (see
+ * docs/create-booking-wizard.md, "Theming" section) -- this mirrors the
+ * existing precedent of CreateBlockingEditor being a fully bespoke,
+ * self-themed page. The wizard toggles `data-theme` on its own root only.
+ */
+.ibw-root {
+  --bg: #f3f6fb;
+  --panel: #ffffff;
+  --card: #ffffff;
+  --line: #e2e8f0;
+  --soft: #f1f5f9;
+  --txt: #111827;
+  --mut: #64748b;
+  --acc: #2563eb;
+  --accInk: #1d4ed8;
+  --accOn: #ffffff;
+  --accSoft: #dbeafe;
+  --pri: #2563eb;
+  --priHover: #1d4ed8;
+  --blue: #1d4ed8;
+  --blueSoft: #eff6ff;
+  --green: #065f46;
+  --greenSoft: #ecfdf5;
+  --amber: #92400e;
+  --amberSoft: #fffbeb;
+  --bad: #be123c;
+  --badSoft: #fff1f2;
+  --shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
+
+  background: var(--bg);
+  color: var(--txt);
+  min-height: 100vh;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.ibw-root[data-theme="dark"] {
+  --bg: #0b1220;
+  --panel: #0f172a;
+  --card: #1e293b;
+  --line: rgba(148, 163, 184, 0.16);
+  --soft: #141f33;
+  --txt: #f1f5f9;
+  --mut: #94a3b8;
+  --acc: #3b82f6;
+  --accInk: #bfdbfe;
+  --accOn: #ffffff;
+  --accSoft: rgba(59, 130, 246, 0.2);
+  --pri: #60a5fa;
+  --priHover: #93c5fd;
+  --blue: #93c5fd;
+  --blueSoft: rgba(96, 165, 250, 0.16);
+  --green: #6ee7b7;
+  --greenSoft: rgba(16, 185, 129, 0.18);
+  --amber: #fcd34d;
+  --amberSoft: rgba(245, 158, 11, 0.18);
+  --bad: #fda4af;
+  --badSoft: rgba(244, 63, 94, 0.18);
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.ibw-root * {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.ibw-root ::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+.ibw-root ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ibw-root ::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 99px;
+}
+.ibw-root a {
+  color: var(--pri);
+}
+.ibw-root input,
+.ibw-root select,
+.ibw-root textarea,
+.ibw-root button {
+  font-family: inherit;
+}
+.ibw-root input:focus,
+.ibw-root select:focus,
+.ibw-root textarea:focus {
+  outline: 2px solid var(--pri);
+  outline-offset: 0;
+}
+
+@keyframes ibwFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ibwSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ibwPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+.ibw-fade-up {
+  animation: ibwFadeUp 0.25s ease;
+}
+.ibw-spin {
+  animation: ibwSpin 0.8s linear infinite;
+}
+.ibw-pulse {
+  animation: ibwPulse 1.4s ease-in-out infinite;
+}
+
+.ibw-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+.ibw-chip {
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--soft);
+  color: var(--txt);
+  padding: 8px 14px;
+}
+.ibw-chip[data-active="true"] {
+  background: var(--acc);
+  border-color: var(--acc);
+  color: var(--accOn);
+}
