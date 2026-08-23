@@ -123,9 +123,9 @@ export default function CreateBlockingEditor({ brands }: CreateBlockingEditorPro
   const [unavailableDates, setUnavailableDates] = useState<Date[]>([]);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
   const [commercialPricing, setCommercialPricing] = useState<CommercialPricing | null>(null);
-  // Resort support — populated when selected property is a Resort
   const [resortRooms, setResortRooms] = useState<ResortRoom[] | null>(null);
   const [selectedRoomId, setSelectedRoomId] = useState<string>("");
+  const [blockAllRooms, setBlockAllRooms] = useState<boolean>(false);
 
   const now = new Date();
   const [calYear, setCalYear] = useState(now.getFullYear());
@@ -251,30 +251,40 @@ export default function CreateBlockingEditor({ brands }: CreateBlockingEditorPro
     if (!propertyId) { toast.error("Please select a property"); return; }
     if (!startDate || !endDate) { toast.error("Please select start and end dates"); return; }
     if (!(startDate < endDate)) { toast.error("End date must be after start date"); return; }
-    // For resort properties, a room must be selected
-    if (resortRooms !== null && !selectedRoomId) {
-      toast.error("Please select a room for this Resort property");
+    // For resort properties, a room must be selected OR blockAllRooms must be checked
+    if (resortRooms !== null && !selectedRoomId && !blockAllRooms) {
+      toast.error("Please select a room or check 'Block all rooms' for this Resort property");
       return;
     }
     const blockReason =
       manualBlockReason.trim() ||
       blockingReasons.find((item) => item.id === blockingReasonId)?.reason ||
       "";
-    if (!blockReason) { toast.error("Please enter a block reason"); return; }
-    const formData = new FormData();
-    formData.set("brandId", brandId);
-    formData.set("propertyId", propertyId);
-    formData.set("startDate", toDateKey(startDate));
-    formData.set("endDate", toDateKey(endDate));
-    formData.set("blockingType", blockingType);
-    formData.set("reason", blockReason);
-    formData.set("notes", blockingReasonNotes.trim());
-    if (selectedRoomId) formData.set("roomId", selectedRoomId);
     startTransition(() => {
-      const promise = parseServerActionResult(createReservationPropertyBlock(formData));
-      toast.promise(promise, {
+      const roomIdsToBlock = blockAllRooms && resortRooms ? resortRooms.filter(r => r.isActive).map(r => r.id) : [selectedRoomId];
+
+      const promises = roomIdsToBlock.map((rId) => {
+        const formData = new FormData();
+        formData.set("brandId", brandId);
+        formData.set("propertyId", propertyId);
+        formData.set("startDate", toDateKey(startDate));
+        formData.set("endDate", toDateKey(endDate));
+        formData.set("blockingType", blockingType);
+        formData.set("reason", blockReason);
+        formData.set("notes", blockingReasonNotes.trim());
+        if (rId) formData.set("roomId", rId);
+        return parseServerActionResult(createReservationPropertyBlock(formData));
+      });
+
+      toast.promise(Promise.all(promises), {
         loading: "Creating blocking...",
-        success: (message) => { router.push("/admin/bookings/blocking"); return message; },
+        success: (results) => {
+          // Find first error if any, otherwise success
+          const errorResult = results.find(r => r.error);
+          if (errorResult) throw new Error(errorResult.error);
+          router.push("/admin/bookings/blocking");
+          return "Blocking created successfully";
+        },
         error: (err) => (err as Error).message,
       });
     });
@@ -284,7 +294,7 @@ export default function CreateBlockingEditor({ brands }: CreateBlockingEditorPro
   const hasSelection = !!startDate;
   const showOptions = hasProperty && hasSelection;
   const isResort = resortRooms !== null;
-  const resortRoomOk = !isResort || !!selectedRoomId;
+  const resortRoomOk = !isResort || !!selectedRoomId || blockAllRooms;
   const canCreate = showOptions && !!blockingType && !!(manualBlockReason.trim() || blockingReasonId) && resortRoomOk;
 
   const cells = getMonthCells(calYear, calMonth);
@@ -335,18 +345,36 @@ export default function CreateBlockingEditor({ brands }: CreateBlockingEditorPro
               No active rooms found for this resort. Add rooms in the property editor first.
             </div>
           ) : (
-            <select
-              value={selectedRoomId}
-              onChange={(e) => setSelectedRoomId(e.target.value)}
-              style={selectStyle}
-            >
-              <option value="">— Select a room —</option>
-              {resortRooms.filter((r) => r.isActive).map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.roomNumber} — {r.roomName} ({r.roomType}, max {r.maxGuestCount} guests)
-                </option>
-              ))}
-            </select>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <select
+                value={selectedRoomId}
+                onChange={(e) => {
+                  setSelectedRoomId(e.target.value);
+                  if (e.target.value) setBlockAllRooms(false);
+                }}
+                style={selectStyle}
+                disabled={blockAllRooms}
+              >
+                <option value="">— Select a room —</option>
+                {resortRooms.filter((r) => r.isActive).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.roomNumber} — {r.roomName} ({r.roomType}, max {r.maxGuestCount} guests)
+                  </option>
+                ))}
+              </select>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: "#cfd8e2" }}>
+                <input
+                  type="checkbox"
+                  checked={blockAllRooms}
+                  onChange={(e) => {
+                    setBlockAllRooms(e.target.checked);
+                    if (e.target.checked) setSelectedRoomId("");
+                  }}
+                  style={{ cursor: "pointer" }}
+                />
+                Block all rooms
+              </label>
+            </div>
           )}
         </div>
       )}

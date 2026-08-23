@@ -285,7 +285,7 @@ export function useSplitSectionAdapters(input: {
         icalLinks: Array.isArray(parentPropertyData?.icalLinks) ? parentPropertyData.icalLinks : [],
         showAddForm: false,
         setShowAddForm: () => {},
-        newLink: { name: "", icalUrl: "" },
+        newLink: { name: "", icalUrl: "", roomId: null },
         setNewLink: () => {},
         exportUrl: parentPropertyData?.exportUrl || "",
         icalLoading: false,

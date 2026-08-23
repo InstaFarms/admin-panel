@@ -6,10 +6,14 @@ import { useEffect } from "react";
 
 interface ICalTabContainerProps {
   propertyId?: string | null;
+  isResort?: boolean;
+  resortRooms?: any[];
 }
 
 export default function ICalTabContainer({
   propertyId,
+  isResort,
+  resortRooms,
 }: ICalTabContainerProps) {
   const { services } = usePropertyEditorServicesContext();
   const { ensureIcalLoaded } = services;
@@ -21,6 +25,8 @@ export default function ICalTabContainer({
   return (
     <ICalManagement
       propertyId={propertyId}
+      isResort={isResort}
+      resortRooms={resortRooms}
       icalLinks={services.icalLinks}
       showAddForm={services.showAddForm}
       setShowAddForm={services.setShowAddForm}

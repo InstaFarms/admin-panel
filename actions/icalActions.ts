@@ -84,7 +84,8 @@ export const fetchIcalLinks = async (
 export const addIcalLink = async (
   propertyId: string,
   name: string,
-  icalUrl: string
+  icalUrl: string,
+  roomId: string | null = null
 ): Promise<ICalActionResult> => {
   try {
     const admin = await isAdmin();
@@ -94,13 +95,14 @@ export const addIcalLink = async (
 
     // ✅ Get token and pass it to API call with /api/ prefix
     const token = await getAuthToken();
-    
+
     const response = await apiPost(
       "/api/ical/links",
       {
         propertyId,
         name,
         icalUrl,
+        roomId,
       },
       {
         token,

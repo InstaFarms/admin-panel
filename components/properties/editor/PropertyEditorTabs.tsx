@@ -388,7 +388,11 @@ export function PropertyEditorTabs({
         {isTabVisited(PROPERTY_EDITOR_TAB_INDEX.ICAL) ? (
           <TabScopeGate locked={activeScope === "brand"} message={PROPERTY_LOCKED_MSG}>
             <TabContentMotion>
-              <ICalTabContainer propertyId={propertyId} />
+              <ICalTabContainer
+                propertyId={propertyId}
+                isResort={isResort}
+                resortRooms={draft.RESORT_ROOMS as any}
+              />
             </TabContentMotion>
           </TabScopeGate>
         ) : null}

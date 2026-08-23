@@ -10,15 +10,18 @@ import {
   TableHeadCell,
   TableRow,
   TextInput,
+  Select,
 } from "flowbite-react";
 
 interface ICalManagementProps {
   propertyId?: string | null;
+  isResort?: boolean;
+  resortRooms?: any[];
   icalLinks: any[];
   showAddForm: boolean;
   setShowAddForm: (show: boolean) => void;
-  newLink: { name: string; icalUrl: string };
-  setNewLink: (link: { name: string; icalUrl: string }) => void;
+  newLink: { name: string; icalUrl: string; roomId?: string | null };
+  setNewLink: (link: { name: string; icalUrl: string; roomId?: string | null }) => void;
   exportUrl: string;
   icalLoading: boolean;
   handleAddIcalLink: () => Promise<void | boolean>;
@@ -29,6 +32,8 @@ interface ICalManagementProps {
 
 export default function ICalManagement({
   propertyId,
+  isResort,
+  resortRooms,
   icalLinks,
   showAddForm,
   setShowAddForm,
@@ -118,6 +123,19 @@ export default function ICalManagement({
 
         {showAddForm && (
           <div className="mb-4 space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+            {isResort && resortRooms && resortRooms.length > 0 && (
+              <Select
+                value={newLink.roomId || ""}
+                onChange={(e) => setNewLink({ ...newLink, roomId: e.target.value || null })}
+              >
+                <option value="">-- Apply to Property Level --</option>
+                {resortRooms.map((room) => (
+                  <option key={room.id} value={room.id}>
+                    {room.name}
+                  </option>
+                ))}
+              </Select>
+            )}
             <TextInput
               placeholder="Platform name (e.g., Airbnb, Booking.com)"
               value={newLink.name}
@@ -156,6 +174,7 @@ export default function ICalManagement({
             <TableHead>
               <TableRow>
                 <TableHeadCell>Platform</TableHeadCell>
+                {isResort && <TableHeadCell>Room</TableHeadCell>}
                 <TableHeadCell>Status</TableHeadCell>
                 <TableHeadCell>Last Synced</TableHeadCell>
                 <TableHeadCell>Actions</TableHeadCell>
@@ -167,6 +186,11 @@ export default function ICalManagement({
                   <TableCell className="font-medium text-gray-900 dark:text-white">
                     {link.name}
                   </TableCell>
+                  {isResort && (
+                    <TableCell>
+                      {resortRooms?.find((r) => r.id === link.roomId)?.name || "-"}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <span
                       className={`rounded px-2 py-1 text-xs font-semibold ${
@@ -225,7 +249,7 @@ export default function ICalManagement({
               ))}
               {icalLinks.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-8 text-center text-gray-500">
+                  <TableCell colSpan={isResort ? 5 : 4} className="py-8 text-center text-gray-500">
                     <p>No calendar links added yet</p>
                     <p className="mt-1 text-sm">
                       Add your first calendar to sync bookings automatically

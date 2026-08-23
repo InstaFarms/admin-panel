@@ -46,7 +46,7 @@ export function usePropertyServices(propertyId?: string | null) {
 
   const [icalLinks, setIcalLinks] = useState<any[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newLink, setNewLink] = useState({ name: "", icalUrl: "" });
+  const [newLink, setNewLink] = useState<{ name: string; icalUrl: string; roomId: string | null }>({ name: "", icalUrl: "", roomId: null });
   const [exportUrl, setExportUrl] = useState<string>("");
   const [icalLoading, setIcalLoading] = useState(false);
   const [icalLoaded, setIcalLoaded] = useState(false);
@@ -176,13 +176,13 @@ export function usePropertyServices(propertyId?: string | null) {
     }
     setIcalLoading(true);
     try {
-      const result = await addIcalLink(propertyId, newLink.name, newLink.icalUrl);
+      const result = await addIcalLink(propertyId, newLink.name, newLink.icalUrl, newLink.roomId);
       if (result.error) {
         toast.error(result.error);
         return false;
       }
       toast.success(result.success || "Link added");
-      setNewLink({ name: "", icalUrl: "" });
+      setNewLink({ name: "", icalUrl: "", roomId: null });
       setShowAddForm(false);
       await loadIcalLinks();
       return true;
