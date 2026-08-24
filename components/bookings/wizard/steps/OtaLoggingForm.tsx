@@ -166,11 +166,24 @@ export default function OtaLoggingForm() {
     }
   };
 
-  const gross = Number(s.ota.amount) || 0;
-  const comm = Number(s.ota.commission) || 0;
-  const occTax = Number(s.ota.occTax) || 0;
-  const tds = Number(s.ota.tds) || 0;
-  const net = gross - comm - occTax - tds;
+  // Persisted financial values are always normalised: the booking total is
+  // GST-inclusive and the platform commission base and its GST are separate.
+  // This lets an operator copy a statement exactly whether it reports its
+  // booking and commission figures before or after GST.
+  const enteredGross = Math.max(0, Number(s.ota.amount) || 0);
+  const occTax = Math.max(0, Number(s.ota.occTax) || 0);
+  const gross = s.ota.amountInputType === "EXCLUSIVE" ? enteredGross + occTax : enteredGross;
+  const grossExclGst = Math.max(0, gross - occTax);
+  const comm = Math.max(0, Number(s.ota.commission) || 0);
+  const platformCommissionInput = Math.max(0, Number(s.ota.platformCommission) || 0);
+  const platformCommissionGst = Math.max(0, Number(s.ota.platformCommissionGst) || 0);
+  const platformCommission =
+    s.ota.commissionGstMode === "INCLUSIVE"
+      ? Math.max(0, platformCommissionInput - platformCommissionGst)
+      : platformCommissionInput;
+  const platformCommissionTotal = platformCommission + platformCommissionGst;
+  const tds = Math.max(0, Number(s.ota.tds) || 0);
+  const net = Math.max(0, gross - comm - occTax - platformCommissionTotal - tds);
 
   const guestPicker = (
     <div style={{ position: "relative" }}>
@@ -555,11 +568,27 @@ export default function OtaLoggingForm() {
         </div>
         <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
           <div>
-            <FieldLabel required>Total amount collected by OTA from user</FieldLabel>
-            <input className={inputCls} style={inputStyle} value={s.ota.amount} onChange={(e) => patch({ ota: { ...s.ota, amount: e.target.value } })} placeholder="0" />
+            <FieldLabel required>Guest amount copied from OTA statement</FieldLabel>
+            <select
+              className={inputCls}
+              style={inputStyle}
+              value={s.ota.amountInputType}
+              onChange={(e) => patch({ ota: { ...s.ota, amountInputType: e.target.value as "INCLUSIVE" | "EXCLUSIVE" } })}
+            >
+              <option value="INCLUSIVE">GST inclusive</option>
+              <option value="EXCLUSIVE">GST exclusive</option>
+            </select>
+            <input
+              className="mt-2 w-full"
+              style={inputStyle}
+              inputMode="decimal"
+              value={s.ota.amount}
+              onChange={(e) => patch({ ota: { ...s.ota, amount: e.target.value } })}
+              placeholder={s.ota.amountInputType === "INCLUSIVE" ? "Amount including GST" : "Amount before GST"}
+            />
           </div>
           <div>
-            <FieldLabel>Host service fee · platform commission</FieldLabel>
+            <FieldLabel>OTA commission / fee</FieldLabel>
             <input className={inputCls} style={inputStyle} value={s.ota.commission} onChange={(e) => patch({ ota: { ...s.ota, commission: e.target.value } })} placeholder="0" />
           </div>
           <div>
@@ -570,13 +599,47 @@ export default function OtaLoggingForm() {
             <FieldLabel>TDS deducted</FieldLabel>
             <input className={inputCls} style={inputStyle} value={s.ota.tds} onChange={(e) => patch({ ota: { ...s.ota, tds: e.target.value } })} placeholder="0" />
           </div>
+          <div>
+            <FieldLabel>Platform commission deduction</FieldLabel>
+            <select
+              className={inputCls}
+              style={inputStyle}
+              value={s.ota.commissionGstMode}
+              onChange={(e) => patch({ ota: { ...s.ota, commissionGstMode: e.target.value as "INCLUSIVE" | "EXCLUSIVE" } })}
+            >
+              <option value="EXCLUSIVE">Commission before GST</option>
+              <option value="INCLUSIVE">Commission including GST</option>
+            </select>
+            <input
+              className="mt-2 w-full"
+              style={inputStyle}
+              inputMode="decimal"
+              value={s.ota.platformCommission}
+              onChange={(e) => patch({ ota: { ...s.ota, platformCommission: e.target.value } })}
+              placeholder="Commission amount"
+            />
+          </div>
+          <div>
+            <FieldLabel>GST on platform commission</FieldLabel>
+            <input
+              className={inputCls}
+              style={inputStyle}
+              inputMode="decimal"
+              value={s.ota.platformCommissionGst}
+              onChange={(e) => patch({ ota: { ...s.ota, platformCommissionGst: e.target.value } })}
+              placeholder="0"
+            />
+          </div>
         </div>
         <div className="mt-3.5 rounded-2xl p-3.5" style={{ background: "var(--soft)", border: "1px solid var(--line)" }}>
           {[
             { k: "Collected by OTA from guest", v: money(gross) },
-            { k: "Less host service fee (commission)", v: `−${money(comm)}` },
-            { k: "Less remitted occupancy tax (GST)", v: `−${money(occTax)}` },
+            { k: "Booking value before GST", v: money(grossExclGst) },
+            { k: "Less OTA commission / fee", v: `−${money(comm)}` },
+            { k: "Less booking GST collected", v: `−${money(occTax)}` },
             { k: "Less TDS deducted", v: `−${money(tds)}` },
+            { k: "Less platform commission", v: `−${money(platformCommission)}` },
+            { k: "Less GST on platform commission", v: `−${money(platformCommissionGst)}` },
           ].map((row) => (
             <div key={row.k} className="flex justify-between gap-2.5 py-1 text-[12.5px]">
               <span style={{ color: "var(--mut)" }}>{row.k}</span>
@@ -594,7 +657,8 @@ export default function OtaLoggingForm() {
           <OfflineBookingGrid 
             checkinDate={s.checkIn ? new Date(s.checkIn) : undefined} 
             checkoutDate={s.checkOut ? new Date(s.checkOut) : undefined} 
-            totalBookingPrice={Number(s.ota.amount) || 0} 
+            amountInputType={s.ota.amountInputType}
+            totalBookingPrice={gross}
             onPayloadChange={(payload) => patch({ ota: { ...s.ota, daywiseBreakup: payload } })} 
           />
         </div>

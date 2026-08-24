@@ -11,6 +11,8 @@ type DaywiseEntry = {
 type OfflineBookingGridProps = {
   checkinDate?: Date;
   checkoutDate?: Date;
+  /** Values typed in each row are either GST-inclusive receipt amounts or GST-exclusive rates. */
+  amountInputType?: "INCLUSIVE" | "EXCLUSIVE";
   totalBookingPrice: number;
   onPayloadChange: (payload: any[]) => void;
 };
@@ -18,6 +20,7 @@ type OfflineBookingGridProps = {
 export default function OfflineBookingGrid({
   checkinDate,
   checkoutDate,
+  amountInputType = "INCLUSIVE",
   totalBookingPrice,
   onPayloadChange,
 }: OfflineBookingGridProps) {
@@ -55,12 +58,20 @@ export default function OfflineBookingGrid({
     const extraGuestFee = parseFloat(e.extraGuestFee) || 0;
     const discount = parseFloat(e.discount) || 0;
     
-    const totalInclGst = roomFee + extraGuestFee - discount;
-    const baseRentalWithoutGst = Math.round((roomFee / (1 + GST_RATE)) * 100) / 100;
-    const extraAdultGuestChargesWithoutGst = Math.round((extraGuestFee / (1 + GST_RATE)) * 100) / 100;
-    const discountForTheDay = Math.round((discount / (1 + GST_RATE)) * 100) / 100;
+    const inputIsInclusive = amountInputType === "INCLUSIVE";
+    const multiplier = 1 + GST_RATE;
+    const baseRentalWithoutGst = Math.round(
+      (inputIsInclusive ? roomFee / multiplier : roomFee) * 100
+    ) / 100;
+    const extraAdultGuestChargesWithoutGst = Math.round(
+      (inputIsInclusive ? extraGuestFee / multiplier : extraGuestFee) * 100
+    ) / 100;
+    const discountForTheDay = Math.round(
+      (inputIsInclusive ? discount / multiplier : discount) * 100
+    ) / 100;
     const bookingAmountWithoutGST = baseRentalWithoutGst + extraAdultGuestChargesWithoutGst - discountForTheDay;
-    const gstAmount = Math.round((totalInclGst - bookingAmountWithoutGST) * 100) / 100;
+    const gstAmount = Math.round((bookingAmountWithoutGST * GST_RATE) * 100) / 100;
+    const totalInclGst = Math.round((bookingAmountWithoutGST + gstAmount) * 100) / 100;
 
     return {
       stayDate: e.date,
@@ -81,7 +92,7 @@ export default function OfflineBookingGrid({
 
   useEffect(() => {
     onPayloadChange(calculatedPayload);
-  }, [entries, gstRatePct]);
+  }, [amountInputType, entries, gstRatePct]);
 
   const currentTotal = calculatedPayload.reduce(
     (acc, curr) => acc + curr.bookingAmountWithGST,
@@ -103,7 +114,7 @@ export default function OfflineBookingGrid({
         <div>
           <h3 className="text-lg font-semibold text-gray-800">OTA / Offline Day-wise Breakup</h3>
           <p className="text-sm text-gray-500 mt-1">
-            Enter the inclusive amounts directly from the OTA extranet/receipt. We automatically back-calculate the Base Price and GST for you.
+            Enter {amountInputType === "INCLUSIVE" ? "GST-inclusive receipt amounts" : "GST-exclusive rates"} directly from the OTA statement. We retain both the exclusive base and GST for each stay date.
           </p>
         </div>
         <div className="flex flex-col items-end">
@@ -137,9 +148,9 @@ export default function OfflineBookingGrid({
           <thead className="bg-gray-100 border-b border-gray-200">
             <tr>
               <th scope="col" className="px-4 py-3 font-semibold text-gray-700 w-32">Date</th>
-              <th scope="col" className="px-4 py-3 font-semibold text-gray-700">Room Fee (Incl.)</th>
-              <th scope="col" className="px-4 py-3 font-semibold text-gray-700">Extra Guest (Incl.)</th>
-              <th scope="col" className="px-4 py-3 font-semibold text-gray-700">Discount (Incl.)</th>
+              <th scope="col" className="px-4 py-3 font-semibold text-gray-700">Room Fee ({amountInputType === "INCLUSIVE" ? "Incl." : "Excl."})</th>
+              <th scope="col" className="px-4 py-3 font-semibold text-gray-700">Extra Guest ({amountInputType === "INCLUSIVE" ? "Incl." : "Excl."})</th>
+              <th scope="col" className="px-4 py-3 font-semibold text-gray-700">Discount ({amountInputType === "INCLUSIVE" ? "Incl." : "Excl."})</th>
               <th scope="col" className="px-4 py-3 font-semibold text-gray-500">Net Daily (Incl.)</th>
               <th scope="col" className="px-4 py-3 font-semibold text-gray-500">Auto GST</th>
             </tr>

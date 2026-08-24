@@ -149,7 +149,19 @@ function initState(brands: WizardBrand[]): WizardState {
     icalDate: "",
     icalShowAll: false,
     otaChannel: "Airbnb",
-    ota: { channel: "Airbnb", ref: "", amount: "", commission: "", occTax: "", tds: "", notes: "" },
+    ota: {
+      channel: "Airbnb",
+      ref: "",
+      amountInputType: "INCLUSIVE",
+      amount: "",
+      commission: "",
+      platformCommission: "",
+      platformCommissionGst: "",
+      commissionGstMode: "EXCLUSIVE",
+      occTax: "",
+      tds: "",
+      notes: "",
+    },
 
     bookingId: null,
     createdBookingRecordId: null,
@@ -338,6 +350,18 @@ function buildGuestBookingFormData(s: WizardState): FormData {
 // never createBooking (bookings + payments + GST/commission ledgers).
 function buildOtaBookingInput(s: WizardState) {
   const totalGuests = s.adults + s.children + s.infants;
+  const enteredGross = Math.max(0, Number(s.ota.amount) || 0);
+  const bookingGst = Math.max(0, Number(s.ota.occTax) || 0);
+  const totalAmountInclGst =
+    s.ota.amountInputType === "EXCLUSIVE"
+      ? enteredGross + bookingGst
+      : enteredGross;
+  const commissionInput = Math.max(0, Number(s.ota.platformCommission) || 0);
+  const commissionGst = Math.max(0, Number(s.ota.platformCommissionGst) || 0);
+  const platformCommissionAmount =
+    s.ota.commissionGstMode === "INCLUSIVE"
+      ? Math.max(0, commissionInput - commissionGst)
+      : commissionInput;
   return {
     brandId: s.brandId,
     brandName: s.brandName,
@@ -349,9 +373,11 @@ function buildOtaBookingInput(s: WizardState) {
     guestName: s.customer?.name || undefined,
     guestPhone: s.customer?.phone || undefined,
     guestCount: totalGuests > 0 ? totalGuests : undefined,
-    totalAmountInclGst: Number(s.ota.amount) || 0,
+    totalAmountInclGst,
     thirdPartyCommissionAmount: Number(s.ota.commission) || 0,
-    gstAmount: Number(s.ota.occTax) || 0,
+    platformCommissionAmount,
+    platformCommissionGst: commissionGst,
+    gstAmount: bookingGst,
     tdsAmount: Number(s.ota.tds) || 0,
     notes: s.ota.notes || undefined,
     daywiseBreakup: s.ota.daywiseBreakup || [],
