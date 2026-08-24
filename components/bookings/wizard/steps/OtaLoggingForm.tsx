@@ -9,6 +9,7 @@ import { useWizardProperties } from "../useWizardProperties";
 import { useDebouncedCallback } from "@/utils/debounce";
 import { FieldLabel, inputCls, inputStyle } from "./FieldBits";
 import StayCalendar from "./StayCalendar";
+import OfflineBookingGrid from "../../edit/OfflineBookingGrid";
 
 const OTA_CHANNELS = ["Airbnb", "Booking.com", "MakeMyTrip", "Agoda", "Goibibo", "Other"];
 
@@ -588,6 +589,14 @@ export default function OtaLoggingForm() {
             <span>Net payout expected from OTA</span>
             <span className="tabular-nums">{money(net)}</span>
           </div>
+        </div>
+        <div className="mt-3.5">
+          <OfflineBookingGrid 
+            checkinDate={s.checkIn ? new Date(s.checkIn) : undefined} 
+            checkoutDate={s.checkOut ? new Date(s.checkOut) : undefined} 
+            totalBookingPrice={Number(s.ota.amount) || 0} 
+            onPayloadChange={(payload) => patch({ ota: { ...s.ota, daywiseBreakup: payload } })} 
+          />
         </div>
         <div className="mt-3.5">
           <FieldLabel>Notes</FieldLabel>

@@ -180,6 +180,7 @@ export type WizardState = {
     occTax: string;
     tds: string;
     notes: string;
+    daywiseBreakup?: any[];
   };
 
   // Terminal

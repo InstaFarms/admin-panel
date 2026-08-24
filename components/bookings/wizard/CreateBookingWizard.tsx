@@ -354,6 +354,7 @@ function buildOtaBookingInput(s: WizardState) {
     gstAmount: Number(s.ota.occTax) || 0,
     tdsAmount: Number(s.ota.tds) || 0,
     notes: s.ota.notes || undefined,
+    daywiseBreakup: s.ota.daywiseBreakup || [],
   };
 }
 

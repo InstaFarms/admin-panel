@@ -2327,6 +2327,7 @@ export const logManualOtaBooking = async (input: {
   gstAmount?: number;
   tdsAmount?: number;
   notes?: string;
+  daywiseBreakup?: any[];
 }): Promise<ServerActionResult> => {
   try {
     if (!(await isAdmin())) return { error: BOOKINGS_ERRORS.unauthorized };
