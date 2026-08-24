@@ -25,11 +25,19 @@ import {
   getOwnerPendingReleaseSummary,
 } from "@/actions/walletActions";
 import { getUser } from "@/actions/userManagementActions";
-import { getOwnerBankAccountsAction } from "@/actions/ownerBankAccountActions";
+import {
+  getOwnerBankAccountsAction,
+  getOwnerPropertyPayoutBankAssignmentsAction,
+} from "@/actions/ownerBankAccountActions";
+import type {
+  BankAccountSummary,
+  OwnerPropertySummary,
+} from "@/actions/ownerBankAccountActions";
 import { getOwnerRouteRecipientOptionsAction } from "@/actions/ownerRouteRecipientActions";
 import { HiArrowDown, HiArrowUp } from "react-icons/hi";
 import ManualTransactionEditor from "./ManualTransactionEditor";
 import OwnerBankAccounts from "./OwnerBankAccounts";
+import PropertyPayoutBankAssignments from "./PropertyPayoutBankAssignments";
 import ReleaseOverrideCard from "./ReleaseOverrideCard";
 import PayoutProcessingActions from "./PayoutProcessingActions";
 import { getAdminPermissionState } from "@/utils/admin-only";
@@ -67,7 +75,8 @@ export default async function Page({ params }: ServerPageProps) {
   let transactions;
   let payouts;
   let pendingRelease;
-  let bankAccounts: any[] = [];
+  let bankAccounts: BankAccountSummary[] = [];
+  let ownerProperties: OwnerPropertySummary[] = [];
   let routeRecipientOptions: {
     brands: Array<{ id: string; name: string }>;
     recipients: Array<{
@@ -105,6 +114,9 @@ export default async function Page({ params }: ServerPageProps) {
     pendingRelease = await getOwnerPendingReleaseSummary(idString);
     const bankAccountsRes = await getOwnerBankAccountsAction(idString);
     if (bankAccountsRes.data) bankAccounts = bankAccountsRes.data;
+    const ownerPropertiesRes =
+      await getOwnerPropertyPayoutBankAssignmentsAction(idString);
+    if (ownerPropertiesRes.data) ownerProperties = ownerPropertiesRes.data;
     const routeRecipientsRes =
       await getOwnerRouteRecipientOptionsAction(idString);
     if (routeRecipientsRes.data)
@@ -195,6 +207,14 @@ export default async function Page({ params }: ServerPageProps) {
       </Card>
 
       <OwnerBankAccounts ownerId={idString} accounts={bankAccounts} />
+
+      <Card className="w-full bg-white">
+        <PropertyPayoutBankAssignments
+          ownerId={idString}
+          accounts={bankAccounts}
+          properties={ownerProperties}
+        />
+      </Card>
 
       <Card className="w-full bg-white">
         <h6 className="mb-2 text-lg font-bold tracking-tight text-gray-900 dark:text-white">
