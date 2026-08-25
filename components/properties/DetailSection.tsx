@@ -324,6 +324,7 @@ export default function DetailSection({
               "Online Booking",
               allowOnlineBooking,
               setAllowOnlineBooking,
+              "When on, guests can book this property online through the website or app.",
             )}
           </DisabledFieldWrapper>
           <DisabledFieldWrapper disabled={!!brandFieldsDisabled} hint={brandFieldsHint}>
@@ -331,16 +332,23 @@ export default function DetailSection({
               "Call Booking",
               allowCallBooking,
               setAllowCallBooking,
+              "When on, guests can request to book this property by phone.",
             )}
           </DisabledFieldWrapper>
           <DisabledFieldWrapper disabled={!!brandFieldsDisabled} hint={brandFieldsHint}>
-            {renderToggleField("Enquiry", allowEnquiry, setAllowEnquiry)}
+            {renderToggleField(
+              "Enquiry",
+              allowEnquiry,
+              setAllowEnquiry,
+              "When on, guests can send an enquiry about this property instead of booking directly.",
+            )}
           </DisabledFieldWrapper>
           <DisabledFieldWrapper disabled={!!brandFieldsDisabled} hint={brandFieldsHint}>
             {renderToggleField(
-              "Non Instant Booking",
-              requiresConfirmation,
-              setRequiresConfirmation,
+              "Instant Booking",
+              !requiresConfirmation,
+              (value) => setRequiresConfirmation(!value),
+              "When on, guests can book without host approval. When off, bookings need to be confirmed manually.",
             )}
           </DisabledFieldWrapper>
         </div>

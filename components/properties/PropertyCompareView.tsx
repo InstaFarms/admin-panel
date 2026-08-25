@@ -344,9 +344,9 @@ export function PropertyDetailsColumn({
             <dd className="mt-0.5 text-sm font-medium text-gray-900 dark:text-white">{boolLabel(p?.allowEnquiry)}</dd>
           </div>
           <div>
-            <dt className="text-xs text-gray-500 dark:text-gray-400">Requires Confirmation</dt>
+            <dt className="text-xs text-gray-500 dark:text-gray-400">Instant Booking</dt>
             <dd className="mt-0.5 text-sm font-medium text-gray-900 dark:text-white">
-              {boolLabel(p?.requiresConfirmation)}
+              {boolLabel(!p?.requiresConfirmation)}
             </dd>
           </div>
         </dl>
