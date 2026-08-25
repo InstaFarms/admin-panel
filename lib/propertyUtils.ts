@@ -83,8 +83,8 @@ export function isInstantBooking(requiresConfirmation: boolean | null | undefine
     return requiresConfirmation === false;
 }
 
-// For display: flips a tri-state requiresConfirmation value into "is instant booking",
-// preserving null/undefined instead of coercing it to a boolean.
+// For display only -- unlike isInstantBooking() above, this keeps null/undefined as "unset"
+// instead of collapsing it to a boolean, so the UI can show "--" rather than a wrong Yes/No.
 export function invertRequiresConfirmation(requiresConfirmation: boolean | null | undefined): boolean | null {
     if (requiresConfirmation === true) return false;
     if (requiresConfirmation === false) return true;
