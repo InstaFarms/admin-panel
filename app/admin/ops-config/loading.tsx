@@ -1,1 +1,1 @@
-export { default } from "@/components/ListPageSkeleton";
+export { default } from "@/components/PageLoadingSpinner";
