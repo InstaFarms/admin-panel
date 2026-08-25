@@ -4,6 +4,7 @@ import LabelWrapper from "@/components/LabelWrapper";
 import TimeSelector from "@/components/TimeSelector";
 import SectionHeading from "@/components/properties/SectionHeading";
 import { Property, PropertyType } from "@/utils/types";
+import { isInstantBooking } from "@/lib/propertyUtils";
 import { TextInput, ToggleSwitch, Select } from "flowbite-react";
 import type { ReactNode } from "react";
 
@@ -140,6 +141,10 @@ export default function DetailSection({
 
   const sectionCardClass =
     "border-b border-slate-200/80 pb-6 last:border-b-0 last:pb-0 dark:border-slate-800";
+
+  const instantBooking = isInstantBooking(requiresConfirmation);
+  const handleInstantBookingChange = (value: boolean) =>
+    setRequiresConfirmation(!value);
 
   const renderToggleField = (
     label: string,
@@ -346,8 +351,8 @@ export default function DetailSection({
           <DisabledFieldWrapper disabled={!!brandFieldsDisabled} hint={brandFieldsHint}>
             {renderToggleField(
               "Instant Booking",
-              !requiresConfirmation,
-              (value) => setRequiresConfirmation(!value),
+              instantBooking,
+              handleInstantBookingChange,
               "When on, guests can book without host approval. When off, bookings need to be confirmed manually.",
             )}
           </DisabledFieldWrapper>

@@ -77,6 +77,20 @@ export function mapPropertyData(data: any): Property {
     } as Property;
 }
 
+// requiresConfirmation === false means guests can book instantly, without host approval.
+// null/undefined means the setting was never configured -- treat that as NOT instant (the safer default).
+export function isInstantBooking(requiresConfirmation: boolean | null | undefined): boolean {
+    return requiresConfirmation === false;
+}
+
+// For display: flips a tri-state requiresConfirmation value into "is instant booking",
+// preserving null/undefined instead of coercing it to a boolean.
+export function invertRequiresConfirmation(requiresConfirmation: boolean | null | undefined): boolean | null {
+    if (requiresConfirmation === true) return false;
+    if (requiresConfirmation === false) return true;
+    return null;
+}
+
 export function applyClientFilters(properties: Property[], filters: ClientFilters): Property[] {
     return properties.filter((p: any) => {
         if (filters.searchQuery) {
@@ -119,7 +133,7 @@ export function applyClientFilters(properties: Property[], filters: ClientFilter
         }
 
         if (filters.instantBook) {
-            if (p.requiresConfirmation !== false) return false;
+            if (!isInstantBooking(p.requiresConfirmation)) return false;
         }
 
         return true;

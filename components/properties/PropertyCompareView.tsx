@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card } from "flowbite-react";
 import { HiExternalLink } from "react-icons/hi";
 import { resolveImageSrc } from "@/utils/image";
+import { invertRequiresConfirmation } from "@/lib/propertyUtils";
 
 function field(value: unknown, fallback = "—") {
   if (value === null || value === undefined) return fallback;
@@ -346,7 +347,7 @@ export function PropertyDetailsColumn({
           <div>
             <dt className="text-xs text-gray-500 dark:text-gray-400">Instant Booking</dt>
             <dd className="mt-0.5 text-sm font-medium text-gray-900 dark:text-white">
-              {boolLabel(!p?.requiresConfirmation)}
+              {boolLabel(invertRequiresConfirmation(p?.requiresConfirmation))}
             </dd>
           </div>
         </dl>
