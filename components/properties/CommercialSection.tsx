@@ -4,8 +4,9 @@ import LabelWrapper from "@/components/LabelWrapper";
 import DayWiseVariablesSection from "@/components/properties/DayWiseVariablesSection";
 import SpecialDatesSection from "@/components/properties/SpecialDatesSection";
 import SectionHeading from "@/components/properties/SectionHeading";
+import ToggleField from "@/components/properties/ToggleField";
 import { SpecialDateData } from "@/utils/types";
-import { Select, TabItem, Tabs, TextInput, ToggleSwitch } from "flowbite-react";
+import { Select, TabItem, Tabs, TextInput } from "flowbite-react";
 import type { ReactNode } from "react";
 
 interface CommercialSectionProps {
@@ -177,40 +178,6 @@ export default function CommercialSection({
 
   const sectionCardClass =
     "border-b border-slate-200/80 pb-6 last:border-b-0 last:pb-0 dark:border-slate-800";
-
-  const renderToggleField = (
-    label: string,
-    checked: boolean,
-    onChange: (value: boolean) => void,
-    description?: string,
-  ) => (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/90 p-4 dark:border-slate-700 dark:bg-slate-900/80">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-gray-900 dark:text-white">
-            {label}
-          </p>
-          {description ? (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {description}
-            </p>
-          ) : null}
-        </div>
-        <ToggleSwitch checked={checked} onChange={onChange} />
-      </div>
-      <div className="mt-2">
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-            checked
-              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-              : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-          }`}
-        >
-          {checked ? "Enabled" : "Off"}
-        </span>
-      </div>
-    </div>
-  );
 
   const renderNumericField = ({
     label,
@@ -401,12 +368,12 @@ export default function CommercialSection({
                 />
 
                 <div className="space-y-4">
-                  {renderToggleField(
-                    "Advance Payment Enabled",
-                    advancePaymentEnabled,
-                    setAdvancePaymentEnabled,
-                    "Allow the booking flow to accept partial payment at confirmation.",
-                  )}
+                  <ToggleField
+                    label="Advance Payment Enabled"
+                    checked={advancePaymentEnabled}
+                    onChange={setAdvancePaymentEnabled}
+                    description="Allow the booking flow to accept partial payment at confirmation."
+                  />
 
                   <div
                     className={`rounded-xl border p-4 transition ${

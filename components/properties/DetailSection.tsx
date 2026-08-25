@@ -3,9 +3,10 @@
 import LabelWrapper from "@/components/LabelWrapper";
 import TimeSelector from "@/components/TimeSelector";
 import SectionHeading from "@/components/properties/SectionHeading";
+import ToggleField from "@/components/properties/ToggleField";
 import { Property, PropertyType } from "@/utils/types";
 import { isInstantBooking } from "@/lib/propertyUtils";
-import { TextInput, ToggleSwitch, Select } from "flowbite-react";
+import { TextInput, Select } from "flowbite-react";
 import type { ReactNode } from "react";
 
 interface DetailSectionProps {
@@ -145,42 +146,6 @@ export default function DetailSection({
   const instantBooking = isInstantBooking(requiresConfirmation);
   const handleInstantBookingChange = (value: boolean) =>
     setRequiresConfirmation(!value);
-
-  const renderToggleField = (
-    label: string,
-    checked: boolean,
-    onChange: (value: boolean) => void,
-    description?: string,
-  ) => (
-    <div
-      className="rounded-lg border border-gray-200 bg-gray-50/80 p-3 dark:border-gray-700 dark:bg-gray-900"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-gray-900 dark:text-white">
-            {label}
-          </p>
-          {description ? (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {description}
-            </p>
-          ) : null}
-        </div>
-        <ToggleSwitch checked={checked} onChange={onChange} />
-      </div>
-      <div className="mt-2">
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-            checked
-              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-              : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
-          }`}
-        >
-          {checked ? "Enabled" : "Disabled"}
-        </span>
-      </div>
-    </div>
-  );
 
   return (
     <div className="mx-auto max-w-[1100px] space-y-6">
@@ -325,36 +290,36 @@ export default function DetailSection({
         />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4 xl:grid-cols-4">
           <DisabledFieldWrapper disabled={!!brandFieldsDisabled} hint={brandFieldsHint}>
-            {renderToggleField(
-              "Online Booking",
-              allowOnlineBooking,
-              setAllowOnlineBooking,
-              "When on, guests can book this property online through the website or app.",
-            )}
+            <ToggleField
+              label="Online Booking"
+              checked={allowOnlineBooking}
+              onChange={setAllowOnlineBooking}
+              description="When on, guests can book this property online through the website or app."
+            />
           </DisabledFieldWrapper>
           <DisabledFieldWrapper disabled={!!brandFieldsDisabled} hint={brandFieldsHint}>
-            {renderToggleField(
-              "Call Booking",
-              allowCallBooking,
-              setAllowCallBooking,
-              "When on, guests can request to book this property by phone.",
-            )}
+            <ToggleField
+              label="Call Booking"
+              checked={allowCallBooking}
+              onChange={setAllowCallBooking}
+              description="When on, guests can request to book this property by phone."
+            />
           </DisabledFieldWrapper>
           <DisabledFieldWrapper disabled={!!brandFieldsDisabled} hint={brandFieldsHint}>
-            {renderToggleField(
-              "Enquiry",
-              allowEnquiry,
-              setAllowEnquiry,
-              "When on, guests can send an enquiry about this property instead of booking directly.",
-            )}
+            <ToggleField
+              label="Enquiry"
+              checked={allowEnquiry}
+              onChange={setAllowEnquiry}
+              description="When on, guests can send an enquiry about this property instead of booking directly."
+            />
           </DisabledFieldWrapper>
           <DisabledFieldWrapper disabled={!!brandFieldsDisabled} hint={brandFieldsHint}>
-            {renderToggleField(
-              "Instant Booking",
-              instantBooking,
-              handleInstantBookingChange,
-              "When on, guests can book without host approval. When off, bookings need to be confirmed manually.",
-            )}
+            <ToggleField
+              label="Instant Booking"
+              checked={instantBooking}
+              onChange={handleInstantBookingChange}
+              description="When on, guests can book without host approval. When off, bookings need to be confirmed manually."
+            />
           </DisabledFieldWrapper>
         </div>
       </section>
