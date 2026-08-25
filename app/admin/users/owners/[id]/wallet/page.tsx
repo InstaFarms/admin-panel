@@ -38,6 +38,7 @@ import { HiArrowDown, HiArrowUp } from "react-icons/hi";
 import ManualTransactionEditor from "./ManualTransactionEditor";
 import OwnerBankAccounts from "./OwnerBankAccounts";
 import PropertyPayoutBankAssignments from "./PropertyPayoutBankAssignments";
+import PropertyCollectionAccountConfiguration from "./PropertyCollectionAccountConfiguration";
 import ReleaseOverrideCard from "./ReleaseOverrideCard";
 import PayoutProcessingActions from "./PayoutProcessingActions";
 import { getAdminPermissionState } from "@/utils/admin-only";
@@ -214,6 +215,10 @@ export default async function Page({ params }: ServerPageProps) {
           accounts={bankAccounts}
           properties={ownerProperties}
         />
+      </Card>
+
+      <Card className="w-full bg-white">
+        <PropertyCollectionAccountConfiguration properties={ownerProperties} />
       </Card>
 
       <Card className="w-full bg-white">

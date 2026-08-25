@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { getPropertyCollectionAccountConfigAction, type PropertyCollectionAccountConfig } from "@/actions/ownerBankAccountActions";
+import { useEffect, useRef, useState } from "react";
 import { useWizard, money } from "../WizardContext";
 import { revealNewRow } from "../gsapHelpers";
 import { inputCls, inputStyle } from "./FieldBits";
@@ -34,6 +35,7 @@ export default function Step8Payment() {
   const { s, patch } = useWizard();
   const listRef = useRef<HTMLDivElement | null>(null);
   const prevCount = useRef(s.rows.length);
+  const [collectionConfig, setCollectionConfig] = useState<PropertyCollectionAccountConfig | null>(null);
 
   const total = s.quoteFinalTotal;
 
@@ -44,10 +46,43 @@ export default function Step8Payment() {
     prevCount.current = s.rows.length;
   }, [s.rows.length]);
 
+  useEffect(() => {
+    let active = true;
+    if (!s.propertyId) {
+      setCollectionConfig(null);
+      return () => {
+        active = false;
+      };
+    }
+    void getPropertyCollectionAccountConfigAction(s.propertyId).then((result) => {
+      if (!active || !result.data) return;
+      setCollectionConfig(result.data);
+      const configuredReceiver = result.data.config?.receiverType;
+      if (!configuredReceiver || s.rows.length === 0) return;
+      patch({
+        rows: s.rows.map((row) => ({
+          ...row,
+          receiverType: configuredReceiver,
+          method:
+            configuredReceiver === "OWNER" && row.method === "PAYMENT_GATEWAY"
+              ? "CASH"
+              : row.method,
+          pgGateway: configuredReceiver === "OWNER" ? "" : row.pgGateway,
+          pgId: configuredReceiver === "OWNER" ? "" : row.pgId,
+          pgFee: configuredReceiver === "OWNER" ? "" : row.pgFee,
+        })),
+      });
+    });
+    return () => {
+      active = false;
+    };
+  }, [s.propertyId]);
+
   const setRow = (id: string, patchRow: Partial<PaymentRow>) => {
     patch({ rows: s.rows.map((r) => (r.id === id ? { ...r, ...patchRow } : r)) });
   };
-  const collectionReceiverType = s.rows[0]?.receiverType || "PLATFORM";
+  const configuredCollectionReceiver = collectionConfig?.config?.receiverType;
+  const collectionReceiverType = configuredCollectionReceiver || s.rows[0]?.receiverType || "PLATFORM";
   const setCollectionReceiverType = (receiverType: PaymentRow["receiverType"]) => {
     patch({
       rows: s.rows.map((row) => ({
@@ -108,6 +143,7 @@ export default function Step8Payment() {
               className={inputCls}
               style={inputStyle}
               value={collectionReceiverType}
+              disabled={Boolean(configuredCollectionReceiver)}
               onChange={(e) => setCollectionReceiverType(e.target.value as PaymentRow["receiverType"])}
             >
               <option value="PLATFORM">Mago collected it</option>
@@ -118,6 +154,11 @@ export default function Step8Payment() {
                 ? "Mago holds the guest funds. The eligible owner settlement is created in the wallet and follows the configured release rule."
                 : "The owner already has the guest funds. It is recorded as paid, but no duplicate wallet or Razorpay Route payout is created."}
             </div>
+            {collectionConfig?.config?.selectedAccount ? (
+              <div className="mt-2 text-[12px] font-semibold" style={{ color: "var(--mut)" }}>
+                Property collection account: {collectionConfig.config.selectedAccount.label} · {collectionConfig.config.selectedAccount.maskedAccountNumber}
+              </div>
+            ) : null}
           </div>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <span className="text-[11.5px] font-extrabold tracking-[0.1em]" style={{ color: "var(--mut)" }}>
