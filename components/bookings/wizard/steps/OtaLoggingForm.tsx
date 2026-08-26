@@ -91,6 +91,14 @@ export default function OtaLoggingForm() {
   const [autoBookingGst, setAutoBookingGst] = useState(true);
   const [autoPlatformCommission, setAutoPlatformCommission] = useState(true);
   const [autoPlatformCommissionGst, setAutoPlatformCommissionGst] = useState(true);
+  // Draft buffer for the derived pre/post-GST counterpart field. Editing it
+  // back-solves the booking GST; the draft lets decimals type smoothly and is
+  // dropped on blur or whenever the primary amount / GST treatment changes so
+  // the field re-syncs to the computed value.
+  const [counterpartDraft, setCounterpartDraft] = useState<string | null>(null);
+  useEffect(() => {
+    setCounterpartDraft(null);
+  }, [s.ota.amountInputType, s.ota.amount]);
 
   useEffect(() => {
     let cancelled = false;
@@ -750,6 +758,45 @@ export default function OtaLoggingForm() {
           <p className="mt-1.5 text-[11.5px]" style={{ color: "var(--mut)" }}>
             Copy the booking total once from the OTA statement. Booking GST and Mago commission below are calculated from this amount and the selected property.
           </p>
+          {s.ota.amount.trim().length > 0 && (
+            <div className="mt-3">
+              <FieldLabel>
+                {s.ota.amountInputType === "EXCLUSIVE" ? "Total (incl GST)" : "Amount before GST"}
+              </FieldLabel>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative min-w-[180px] flex-1">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] font-extrabold" style={{ color: "var(--mut)" }}>₹</span>
+                  <input
+                    aria-label={s.ota.amountInputType === "EXCLUSIVE" ? "Total including GST" : "Amount before GST"}
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    className={`${inputCls} pl-7 tabular-nums`}
+                    style={inputStyle}
+                    value={counterpartDraft !== null ? counterpartDraft : moneyInput(s.ota.amountInputType === "EXCLUSIVE" ? gross : grossExclGst)}
+                    onChange={(event) => {
+                      const raw = normalizedMoneyInput(event.target.value);
+                      setCounterpartDraft(raw);
+                      const entered = Math.max(0, Number(raw) || 0);
+                      const base = Math.max(0, Number(s.ota.amount) || 0);
+                      const nextGst =
+                        s.ota.amountInputType === "EXCLUSIVE"
+                          ? Math.max(0, entered - base)
+                          : Math.max(0, base - entered);
+                      setAutoBookingGst(false);
+                      patch({ ota: { ...s.ota, occTax: moneyInput(nextGst) } });
+                    }}
+                    onBlur={() => setCounterpartDraft(null)}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="flex items-center gap-2 text-[10.5px]" style={{ color: "var(--mut)" }}>
+                  <span>{s.ota.amountInputType === "EXCLUSIVE" ? "Pre-GST + GST." : "Total − GST."} Edit to override GST.</span>
+                  <AutoState active={autoBookingGst} label={`${autoSettlement.bookingGstRate}% GST`} onReset={() => setAutoBookingGst(true)} />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <button
