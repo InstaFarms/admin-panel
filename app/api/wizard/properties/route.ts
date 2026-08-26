@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
     const appType = QUICK_CREATE_APP_TYPE_BY_BRAND_ID[primaryBrandId];
     if (!appType) {
       return NextResponse.json(
-        { error: "Quick Create currently supports InstaFarms and Mago. Listings uses its separate publishing flow." },
+        { error: "Unsupported brand selected for Quick Create." },
         { status: 400 }
       );
     }

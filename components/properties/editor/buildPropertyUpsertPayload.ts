@@ -258,8 +258,8 @@ export const buildRelationIntentFromDirtySections = (input: BuildPropertyUpsertP
   // diffed, not the canonical BRAND_SLUGS list. The property-source migration
   // renamed BRAND_SLUGS to the new PropertySource casing (INSTAFARMS_EXCLUSIVE/
   // MAGO/ELIVAAS), but the existing-property edit flow (usePropertyBootstrap)
-  // still builds drafts keyed by the legacy lowercase slugs (instafarms/mago/
-  // listing). Matching against the wrong casing meant every dirty path silently
+  // still builds drafts keyed by the legacy lowercase slugs (instafarms/mago).
+  // Matching against the wrong casing meant every dirty path silently
   // missed, so relationIntent always came out "unchanged" and edits to owners/
   // managers/caretakers/amenities/plans/etc. never got saved even though the
   // request "succeeded". Deriving prefixes from the actual object keys keeps

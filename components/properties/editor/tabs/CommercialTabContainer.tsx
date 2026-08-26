@@ -54,11 +54,7 @@ export default function CommercialTabContainer({
   );
 
   const commercialBrandLabel =
-    commercialBrandSlug === "mago"
-      ? "Mago"
-      : commercialBrandSlug === "listing"
-        ? "Listings"
-        : "Instafarms";
+    commercialBrandSlug === "mago" ? "Mago" : "Instafarms";
 
   const updateArrayAtPath = <T,>(path: string, updater: (prev: T[]) => T[]) => {
     onSectionChange(path, (prev: T[] | undefined) =>

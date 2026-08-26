@@ -185,11 +185,7 @@ export function PropertyEditorTabs({
         : null;
   const activeBrandName =
     brands.find((brand) => brand.id === (detail.brandId as string))?.name ??
-    (activeBrandSlug === "instafarms"
-      ? "Instafarms"
-      : activeBrandSlug === "mago"
-        ? "Mago"
-        : "Listing");
+    (activeBrandSlug === "mago" ? "Mago" : "Instafarms");
   const commercial = asRecord(activeBundle?.commercial);
   const plans = asRecord(activeBundle?.plans);
   const others = asRecord(activeBundle?.others);

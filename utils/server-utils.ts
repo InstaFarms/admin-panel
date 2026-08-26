@@ -709,7 +709,6 @@ export function parsePropertyFormData(formData: FormData): PropertyFormData {
 
     slug: parseString(formData.get("slug")?.toString()) ?? null,
     showOnInstafarms: parseBoolean(formData.get("showOnInstafarms")?.toString()) ?? true,
-    showOnListing: parseBoolean(formData.get("showOnListing")?.toString()) ?? true,
     isPresentOnMago: parseBoolean(formData.get("isPresentOnMago")?.toString()) ?? false,
     bookingPolicy: parseString(formData.get("bookingPolicy")?.toString()) ?? "",
     faqs: [], // Add default value

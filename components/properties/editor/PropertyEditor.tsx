@@ -107,7 +107,7 @@ export default function PropertyEditor({ propertyId, brands = [] }: PropertyEdit
   }, [availableBrands, brands]);
   const activeBrandName =
     availableBrands.find((brand) => brand.slug === activeBrandSlug)?.name ??
-    (activeBrandSlug === "instafarms" ? "Instafarms" : activeBrandSlug === "mago" ? "Mago" : "Listing");
+    (activeBrandSlug === "mago" ? "Mago" : "Instafarms");
   const activeBrand = availableBrands.find((brand) => brand.slug === activeBrandSlug) ?? null;
   const isBrandSwitching =
     Boolean(propertyId) &&

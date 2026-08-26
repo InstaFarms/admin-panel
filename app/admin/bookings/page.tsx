@@ -50,12 +50,6 @@ function getBrandTagMeta(
   isPresentOnMago?: boolean
 ): { label: string; className: string } | null {
   const normalized = String(brandName || "").toLowerCase();
-  if (normalized.includes("listing")) {
-    return {
-      label: "[listing]",
-      className: "text-amber-600 dark:text-amber-400",
-    };
-  }
   if (normalized.includes("mago")) {
     return {
       label: "[MS]",

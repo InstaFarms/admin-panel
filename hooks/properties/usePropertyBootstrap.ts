@@ -353,7 +353,6 @@ export interface PropertyBootstrapBrandOption {
 const toBrandSlug = (value: unknown): BrandSlug => {
   const raw = String(value ?? "").trim().toLowerCase();
   if (raw.includes("mago")) return "mago";
-  if (raw.includes("listing")) return "listing";
   return "instafarms";
 };
 
@@ -400,7 +399,7 @@ const normalizeAvailableBrands = (raw: Record<string, unknown>): PropertyBootstr
 
   return BRAND_SLUGS.filter((slug) => Object.keys(asRecord(raw[slug])).length > 0).map((slug) => ({
     id: slug,
-    name: slug === "instafarms" ? "Instafarms" : slug === "mago" ? "Mago" : "Listing",
+    name: slug === "instafarms" ? "Instafarms" : "Mago",
     slug,
     isActive: true,
   }));

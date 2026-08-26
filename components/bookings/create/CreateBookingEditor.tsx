@@ -304,10 +304,9 @@ const formatDisplayDate = (date: Date | null) =>
       })
     : null;
 
-const resolveBrandSlug = (brandName: string): "instafarms" | "mago" | "listing" => {
+const resolveBrandSlug = (brandName: string): "instafarms" | "mago" => {
   const normalized = brandName.trim().toLowerCase();
   if (normalized.includes("mago")) return "mago";
-  if (normalized.includes("listing")) return "listing";
   return "instafarms";
 };
 

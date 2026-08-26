@@ -16,10 +16,10 @@ interface PlansTabContainerProps {
 
 // The create-property flow types this as "INSTAFARMS_EXCLUSIVE" / "MAGO" / "ELIVAAS",
 // but the existing-property edit flow (usePropertyBootstrap) actually passes the legacy
-// lowercase slugs ("instafarms" / "mago" / "listing") at runtime — see the casing note in
+// lowercase slugs ("instafarms" / "mago") at runtime — see the casing note in
 // buildPropertyUpsertPayload.ts. Match case-insensitively so both flows resolve correctly.
-// Discount/cancellation plans only exist under the InstaFarms and Mago brands, so the
-// listing brand (ELIVAAS/"listing") falls back to InstaFarms' plan scope.
+// Discount/cancellation plans only exist under the InstaFarms and Mago brands, so any
+// other source (e.g. ELIVAAS) falls back to InstaFarms' plan scope.
 const planAppTypeForBrandSlug = (slug: BrandSlug): string =>
   String(slug).toUpperCase() === "MAGO" ? PLAN_BRAND_APP_TYPE.mago : PLAN_BRAND_APP_TYPE.instafarms;
 

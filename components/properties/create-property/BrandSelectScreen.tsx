@@ -22,7 +22,7 @@ interface BrandSelectScreenProps {
 const BRAND_GRADIENTS: Record<string, string> = {
   instafarms: "from-emerald-500 to-teal-600",
   mago: "from-blue-500 to-indigo-600",
-  listing: "from-purple-500 to-violet-600",
+  elivaas: "from-purple-500 to-violet-600",
 };
 
 export default function BrandSelectScreen({
@@ -103,7 +103,7 @@ export default function BrandSelectScreen({
               ? BRAND_GRADIENTS.instafarms
               : source.id === "MAGO"
                 ? BRAND_GRADIENTS.mago
-                : BRAND_GRADIENTS.listing;
+                : BRAND_GRADIENTS.elivaas;
 
           return (
             <div

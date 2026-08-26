@@ -21,7 +21,6 @@ interface PropertiesTableProps {
 const BRAND_COLUMNS = [
   { slug: "instafarms", label: "Instafarms" },
   { slug: "mago", label: "Mago" },
-  { slug: "listing", label: "Listing" },
 ] as const;
 
 export default function PropertiesTable({

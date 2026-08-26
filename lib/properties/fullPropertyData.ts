@@ -94,7 +94,6 @@ const toBrandSlug = (value: unknown): BrandSlug | null => {
   if (!normalized) return null;
   if (normalized === "instafarms" || normalized.includes("instafarm")) return "instafarms";
   if (normalized === "mago" || normalized.includes("mago")) return "mago";
-  if (normalized === "listing" || normalized.includes("listing")) return "listing";
   return null;
 };
 
@@ -105,7 +104,6 @@ const buildBrandKeyToSlugMap = (...sources: unknown[]): Record<string, BrandSlug
   const map: Record<string, BrandSlug> = {
     instafarms: "instafarms",
     mago: "mago",
-    listing: "listing",
   };
 
   for (const source of sources) {
@@ -199,7 +197,7 @@ export interface PropertyFullDataV2 {
 
 export type PropertyFullPayload =
   | Record<
-      "instafarms" | "mago" | "listing",
+      "instafarms" | "mago",
       {
         detail?: AnyRecord;
         address?: AnyRecord;

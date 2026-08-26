@@ -23,7 +23,6 @@ describe("normalizePropertyFullData", () => {
           plans: { discountPlans: [{ id: "dp-2" }] },
           others: { description: "brand 2 description" },
         },
-        listing: {},
       },
     });
 
@@ -102,7 +101,6 @@ describe("normalizePropertyFullData", () => {
 
     expect(normalized.tabs.brandData.instafarms.commercial.securityDeposit).toBe(1000);
     expect(normalized.tabs.brandData.mago).toBeUndefined();
-    expect(normalized.tabs.brandData.listing).toBeUndefined();
   });
 
   it("hydrates section-first brandData shape", () => {

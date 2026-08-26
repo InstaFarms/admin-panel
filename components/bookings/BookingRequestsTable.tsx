@@ -60,12 +60,6 @@ function getBrandTagMeta(
   bookingSource?: string | null
 ): { label: string; className: string } | null {
   const normalizedBrand = String(brandName || "").toLowerCase();
-  if (normalizedBrand.includes("listing")) {
-    return {
-      label: "[listing]",
-      className: "text-amber-600 dark:text-amber-400",
-    };
-  }
   if (normalizedBrand.includes("mago")) {
     return {
       label: "[MS]",
@@ -80,12 +74,6 @@ function getBrandTagMeta(
   }
 
   const normalizedSource = String(bookingSource || "").toLowerCase();
-  if (normalizedSource.includes("listing")) {
-    return {
-      label: "[listing]",
-      className: "text-amber-600 dark:text-amber-400",
-    };
-  }
   if (normalizedSource.includes("mago")) {
     return {
       label: "[MS]",

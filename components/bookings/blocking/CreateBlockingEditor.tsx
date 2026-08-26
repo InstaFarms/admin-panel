@@ -65,10 +65,9 @@ const asNumber = (v: unknown): number | null => {
 const asRecord = (v: unknown): Record<string, unknown> | null =>
   v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
 
-const resolveBrandSlug = (brandName: string): "instafarms" | "mago" | "listing" => {
+const resolveBrandSlug = (brandName: string): "instafarms" | "mago" => {
   const n = brandName.trim().toLowerCase();
   if (n.includes("mago")) return "mago";
-  if (n.includes("listing")) return "listing";
   return "instafarms";
 };
 

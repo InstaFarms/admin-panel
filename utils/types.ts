@@ -289,7 +289,6 @@ export type PropertyFormData = Omit<
   foodOptions?: PropertyBrandContentSection | string | null;
   miscCharges?: PropertyBrandContentSection | string | null;
   showOnInstafarms?: boolean | null;
-  showOnListing?: boolean | null;
   slug?: string | null;
   faqs?: any;
   meta?: Record<string, any>;
@@ -1288,7 +1287,6 @@ export type Entity = Property & {
   enableFloatingGuests?: boolean;
   totalRoomsAvailable?: number;
   isActive?: boolean;
-  showOnListing?: boolean;
   propertyId?: string;
 };
 

@@ -20,7 +20,6 @@ export default async function Page({
   const brands: WizardBrand[] = Array.isArray(brandsRaw)
     ? brandsRaw
         .filter((brand: any) => brand?.id && brand?.name)
-        .filter((brand: any) => !String(brand.name).toLowerCase().includes("listing"))
         .map((brand: any) => ({ id: String(brand.id), name: String(brand.name) }))
     : [];
 

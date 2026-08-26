@@ -7,9 +7,7 @@ import type { BrandSlug } from "./propertyEditorDraft";
 export const resolveBrandSlugFromId = (
   brandId: string | null | undefined,
 ): BrandSlug => {
-  return brandId === "mago" || brandId === "listing"
-    ? brandId
-    : "instafarms";
+  return brandId === "mago" ? brandId : "instafarms";
 };
 
 /**
@@ -22,6 +20,5 @@ export const resolveBrandSlugFromName = (
   const normalized = String(brandName ?? "").toLowerCase();
   if (normalized.includes("instafarm")) return "instafarms";
   if (normalized.includes("mago")) return "mago";
-  if (normalized.includes("listing")) return "listing";
   return "instafarms";
 };

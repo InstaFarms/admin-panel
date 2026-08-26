@@ -800,7 +800,6 @@ export const resetWatermarkRegenLogAction = async (appType: string, force: boole
 
 async function getWatermarkUrls(appType?: string): Promise<{
   instafarmWatermarkUrl: string | null;
-  listingWatermarkUrl: string | null;
   displayNumber: string | null;
 }> {
   try {
@@ -810,14 +809,12 @@ async function getWatermarkUrls(appType?: string): Promise<{
     const displayNumber =
       (data?.centralBookingNumber || data?.whatsappNumber || data?.supportNumber || "")?.trim() || null;
     const rawInstafarmUrl = data?.instafarmWatermarkUrl || response.data?.instafarmWatermarkUrl || null;
-    const rawListingUrl = data?.listingWatermarkUrl || response.data?.listingWatermarkUrl || null;
     // if-api's /site_settings returns the raw stored value (a relative storage key, e.g.
     // "setting/instafarms/hero.webp") with no resolution step — must resolve to an absolute
     // URL here since this is fetched directly via a plain HTTP GET (downloadImageBuffer), not
     // rendered through an <img> tag that could tolerate a relative path.
     return {
       instafarmWatermarkUrl: resolveImageSrc(rawInstafarmUrl),
-      listingWatermarkUrl: resolveImageSrc(rawListingUrl),
       displayNumber: displayNumber || null,
     };
   } catch (error) {
@@ -825,7 +822,6 @@ async function getWatermarkUrls(appType?: string): Promise<{
     captureError(error);
     return {
       instafarmWatermarkUrl: null,
-      listingWatermarkUrl: null,
       displayNumber: null,
     };
   }
@@ -859,7 +855,7 @@ async function createThumbnailBuffer(imageBuffer: Buffer, contentType: string): 
 async function addWatermarkOnServer(
   imageBuffer: Buffer,
   contentType: string,
-  watermarkType: 'instafarm' | 'listing',
+  watermarkType: 'instafarm',
   watermarkUrl: string | null,
   displayNumber?: string | null,
   /** Pre-downloaded watermark buffer to skip fetching (optimization for batch processing). */
