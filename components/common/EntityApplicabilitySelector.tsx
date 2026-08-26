@@ -143,9 +143,9 @@ export default function EntityApplicabilitySelector({
     return (
       <div
         key={entity.id}
-        className="flex items-center rounded-lg border border-gray-200 bg-white p-2 shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+        className="group flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-2.5 transition-colors hover:border-gray-300 hover:shadow-sm dark:border-slate-700/70 dark:bg-slate-800/60 dark:hover:border-slate-600 dark:hover:bg-slate-800"
       >
-        <div className="relative mr-3 h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
+        <div className="relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-md bg-gray-100 dark:bg-slate-700">
           <img
             src={imageUrl}
             alt={entity.propertyName || entity.entityName}
@@ -153,49 +153,54 @@ export default function EntityApplicabilitySelector({
           />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold text-gray-900 dark:text-white">
+          <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
             {entity.propertyName || entity.entityName || entity.name}
           </p>
-          <p className="flex items-center gap-1 truncate text-xs text-gray-500 dark:text-gray-400">
-            <HiLocationMarker className="h-3 w-3" />
+          <p className="flex items-center gap-1 truncate text-xs text-gray-500 dark:text-slate-400">
+            <HiLocationMarker className="h-3 w-3 flex-shrink-0" />
             {locationText || "Unknown Location"}
           </p>
         </div>
         <button
           type="button"
           onClick={action}
-          className={`rounded-full p-2 transition-colors ${isDestructive ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"}`}
+          title={isDestructive ? "Remove" : "Include"}
+          className={`flex-shrink-0 rounded-full p-2 opacity-70 transition-colors group-hover:opacity-100 ${isDestructive ? "text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 dark:hover:text-red-300" : "text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white"}`}
         >
-          <HiTrash className="h-5 w-5" />
+          <HiTrash className="h-4 w-4" />
         </button>
       </div>
     );
   };
 
   return (
-    <div className="mb-6">
-      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h3 className="text-lg font-semibold dark:text-white">{title}</h3>
-        <Button
+    <div>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
+          <p className="mt-0.5 text-xs text-gray-500 dark:text-slate-400">
+            Control which properties this offer can be applied to.
+          </p>
+        </div>
+        <button
           type="button"
-          size="sm"
-          color="failure"
           onClick={removeAllProperties}
           disabled={!appliesToAllEntities && entityIds.length === 0}
-          className="w-full sm:w-auto"
+          className="flex items-center justify-center gap-1.5 self-start rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-gray-300 disabled:hover:bg-transparent disabled:hover:text-gray-500 sm:self-auto dark:border-slate-700 dark:text-slate-400 dark:hover:border-red-500/40 dark:hover:bg-red-500/10 dark:hover:text-red-400 dark:disabled:hover:border-slate-700 dark:disabled:hover:text-slate-400"
         >
+          <HiTrash className="h-3.5 w-3.5" />
           Remove All Properties
-        </Button>
+        </button>
       </div>
 
       {/* Segmented Control */}
-      <div className="mb-4 flex rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
+      <div className="mb-4 flex rounded-lg border border-gray-200 bg-gray-100 p-1 dark:border-slate-700/70 dark:bg-slate-800/60">
         <div
           onClick={() => handleModeSwitch("all")}
           className={`flex-1 cursor-pointer rounded-md py-2 text-center text-sm font-medium transition-all ${
             appliesToAllEntities
-              ? "bg-blue-600 text-white shadow"
-              : "text-gray-600 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white"
+              ? "bg-primary-600 text-white shadow"
+              : "text-gray-600 hover:bg-gray-200 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white"
           }`}
         >
           All Properties
@@ -204,8 +209,8 @@ export default function EntityApplicabilitySelector({
           onClick={() => handleModeSwitch("specific")}
           className={`flex-1 cursor-pointer rounded-md py-2 text-center text-sm font-medium transition-all ${
             !appliesToAllEntities
-              ? "bg-blue-600 text-white shadow"
-              : "text-gray-600 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white"
+              ? "bg-primary-600 text-white shadow"
+              : "text-gray-600 hover:bg-gray-200 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white"
           }`}
         >
           Specific Properties
@@ -213,19 +218,19 @@ export default function EntityApplicabilitySelector({
       </div>
 
       {error && (
-        <p className="mb-2 text-sm text-red-600 dark:text-red-500">{error}</p>
+        <p className="mb-2 text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
 
       {/* Sub-text and Search */}
       <div className="mb-4 space-y-3">
         {appliesToAllEntities ? (
-          <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-slate-700/70 dark:bg-slate-800/40">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                   Applies to every property
                 </p>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
                   {!allowExclusions
                     ? "This plan will be available for all properties."
                     : excludedEntityIds.length > 0
@@ -234,23 +239,23 @@ export default function EntityApplicabilitySelector({
                 </p>
               </div>
               {allowExclusions && (
-                <Button
+                <button
                   type="button"
-                  size="sm"
-                  color="light"
                   onClick={() => setShowExclusionSearch((value) => !value)}
-                  className="w-full sm:w-auto"
+                  className="self-start rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-gray-400 hover:bg-gray-50 sm:self-auto dark:border-slate-600 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-700"
                 >
                   {showExclusionSearch || excludedEntityIds.length > 0
                     ? "Edit Exclusions"
                     : "Exclude Properties"}
-                </Button>
+                </button>
               )}
             </div>
           </div>
         ) : (
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            This is currently valid on {entityIds.length} properties.
+          <p className="text-sm text-gray-500 dark:text-slate-400">
+            This is currently valid on{" "}
+            <span className="font-medium text-gray-800 dark:text-slate-200">{entityIds.length}</span>{" "}
+            {entityIds.length === 1 ? "property" : "properties"}.
           </p>
         )}
 
@@ -289,8 +294,8 @@ export default function EntityApplicabilitySelector({
           {excludedEntities.length > 0 && (
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <Label className="text-red-600 dark:text-red-500">
-                  Except these properties (Exclusion List):
+                <Label className="text-xs font-semibold tracking-wide text-red-600 uppercase dark:text-red-400">
+                  Excluded properties
                 </Label>
               </div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -318,8 +323,8 @@ export default function EntityApplicabilitySelector({
               )}
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed p-4 text-center text-sm text-gray-400 italic dark:border-gray-700">
-              No properties selected. Use search to add.
+            <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-slate-700 dark:text-slate-400">
+              No properties selected yet. Use the search above to add some.
             </div>
           )}
         </div>
@@ -334,23 +339,23 @@ export default function EntityApplicabilitySelector({
         <ModalHeader />
         <ModalBody>
           <div className="text-center">
-            <HiExclamation className="mx-auto mb-4 h-14 w-14 text-gray-400 dark:text-gray-200" />
-            <h3 className="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
+            <HiExclamation className="mx-auto mb-4 h-14 w-14 text-amber-500 dark:text-amber-400" />
+            <h3 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
               Change Scope?
             </h3>
-            <p className="mb-5 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mb-5 text-sm text-gray-500 dark:text-slate-400">
               {pendingMode === "all"
                 ? `Switching to 'All Properties' will clear your selection of ${entityIds.length} properties.`
                 : `Switching to 'Specific Properties' will clear your ${preloadedEntities.length - entityIds.length} exclusions.`}
               <br />
               Are you sure?
             </p>
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-center gap-3">
               <Button
                 color="failure"
                 onClick={() => pendingMode && performModeSwitch(pendingMode)}
               >
-                Confirm & Clear
+                Confirm &amp; Clear
               </Button>
               <Button color="gray" onClick={() => setShowConfirmModal(false)}>
                 Cancel

@@ -169,8 +169,26 @@ export default function CouponEditor({
     });
   };
 
+  // Native HTML5 constraint validation (required/min/max on the raw <input>s)
+  // runs before React's `action` handler and blocks the submit event entirely
+  // on failure — no handler call, no toast, nothing. That's what made the
+  // validFrom min-date issue look like "submit does nothing"; this is a
+  // backstop so any future case like it surfaces a message instead of silence.
+  const handleInvalid = (e: React.SyntheticEvent<HTMLFormElement>) => {
+    const field = e.target as unknown as HTMLInputElement;
+    const label =
+      document.querySelector(`label[for="${field.id}"]`)?.textContent?.replace("*", "").trim() ||
+      field.name ||
+      "A field";
+    toast.error(`${label}: ${field.validationMessage || "invalid value"}`);
+  };
+
   return (
-    <form action={handleSubmit} className="mx-auto flex w-full max-w-5xl flex-col gap-5">
+    <form
+      action={handleSubmit}
+      onInvalidCapture={handleInvalid}
+      className="mx-auto flex w-full max-w-5xl flex-col gap-5"
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1">
           {title ? (
@@ -212,6 +230,7 @@ export default function CouponEditor({
                   }}
                   validFromError={errors.validFrom}
                   validUntilError={errors.validUntil}
+                  isEdit={isEdit}
                 />
                 <CouponMinOrderValue
                   minOrderValue={minOrderValue}

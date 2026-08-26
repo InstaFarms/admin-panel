@@ -7,6 +7,7 @@ interface CouponValidityProps {
   setValidUntil: (value: string) => void;
   validFromError?: string | null;
   validUntilError?: string | null;
+  isEdit?: boolean;
 }
 
 export default function CouponValidity({
@@ -16,7 +17,17 @@ export default function CouponValidity({
   setValidUntil,
   validFromError,
   validUntilError,
+  isEdit = false,
 }: CouponValidityProps) {
+  // Only stop new coupons from starting in the past. An existing coupon's
+  // validFrom is often already in the past (it's been running for a while) —
+  // enforcing today's date as the browser's native `min` there made the date
+  // itself fail HTML5 constraint validation, which silently blocks the whole
+  // form's submit event (no handler call, no error, no network request) the
+  // moment you try to save ANY change to that coupon.
+  const today = new Date().toISOString().slice(0, 10);
+  const validFromMin = isEdit ? undefined : today;
+
   return (
     <>
       <div>
@@ -32,7 +43,7 @@ export default function CouponValidity({
           required
           className="w-full"
           value={validFrom}
-          min={new Date().toISOString().slice(0, 10)}
+          min={validFromMin}
           onChange={(e) => setValidFrom(e.target.value)}
           color={validFromError ? "failure" : "gray"}
         />

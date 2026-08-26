@@ -13,6 +13,19 @@ import {
 } from "@/constants/coupons";
 import { captureError } from "@/lib/sentry";
 
+// ─── Cache invalidation ────────────────────────────────────────────────────────
+
+// Coupon lists render under three separate route trees (brand-agnostic, Mago,
+// Instafarms), each with its own [id] edit page nested inside. Revalidating only
+// "/admin/coupons" left the brand-scoped list and edit pages serving stale cached
+// data after a create/update/delete/status-toggle, which looked like "updates
+// don't save" even though the write succeeded.
+function revalidateCouponPaths() {
+  revalidatePath("/admin/coupons", "layout");
+  revalidatePath("/admin/mago-coupons", "layout");
+  revalidatePath("/admin/instafarms-coupons", "layout");
+}
+
 // ─── Auth helper ──────────────────────────────────────────────────────────────
 
 async function getAuthToken(): Promise<string> {
@@ -118,7 +131,7 @@ export const createCoupon = async (formData: FormData): Promise<ServerActionResu
     const token = await getAuthToken();
     await apiPost("/api/coupons/create", buildCouponPayload(fields), { token });
 
-    revalidatePath("/admin/coupons");
+    revalidateCouponPaths();
     return { success: COUPONS_SUCCESS.created };
   } catch (err) {
     captureError(err);
@@ -136,8 +149,6 @@ export const editCoupon = async (id: string, formData: FormData): Promise<Server
     const validationError = buildServerValidationErrors(fields, true);
     if (validationError) return { error: validationError };
 
-    console.log(`[editCoupon] Received fields.entityIds with length: ${fields.entityIds.length}`);
-
     const token = await getAuthToken();
     const payload: any = { id, ...buildCouponPayload(fields) };
     // Important for updates: clear the opposite discount field to avoid
@@ -147,11 +158,10 @@ export const editCoupon = async (id: string, formData: FormData): Promise<Server
     } else {
       payload.discountPercentage = null;
     }
-    console.log(`[editCoupon] Payload to send: length=${payload.entityIds?.length}`);
 
     await apiPost("/api/coupons/update", payload, { token });
 
-    revalidatePath("/admin/coupons");
+    revalidateCouponPaths();
     return { success: COUPONS_SUCCESS.updated };
   } catch (err) {
     captureError(err);
@@ -168,7 +178,7 @@ export const deleteCoupon = async (id: string): Promise<ServerActionResult> => {
     const token = await getAuthToken();
     await apiPost("/api/coupons/delete", { id }, { token });
 
-    revalidatePath("/admin/coupons");
+    revalidateCouponPaths();
     return { success: COUPONS_SUCCESS.deleted };
   } catch (err) {
     captureError(err);
@@ -187,7 +197,7 @@ export const toggleCouponStatus = async (
     const token = await getAuthToken();
     await apiPost("/api/coupons/toggle-status", { id, isActive }, { token });
 
-    revalidatePath("/admin/coupons");
+    revalidateCouponPaths();
     return { success: COUPONS_SUCCESS.statusToggled };
   } catch (err) {
     captureError(err);
