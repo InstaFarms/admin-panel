@@ -48,6 +48,31 @@ function createEntries(checkinDate?: Date, checkoutDate?: Date): DaywiseEntry[] 
 }
 
 /**
+ * Even-split the booking total across the stay for the Room column.
+ *
+ * The "Statement total" this grid is checked against is always GST-inclusive.
+ * In INCLUSIVE mode the Room field already holds an incl-GST receipt amount, so
+ * each night is simply total / nights. In EXCLUSIVE mode the Room field holds a
+ * pre-GST rate, so the per-night share is scaled down by the slab first, so that
+ * each night's Net incl. GST (rate + GST) still sums back to the total. The first
+ * night absorbs the rounding remainder so the column sums to the statement exactly.
+ */
+function distributeRoomFees(
+  total: number,
+  nights: number,
+  amountInputType: "INCLUSIVE" | "EXCLUSIVE",
+  gstRatePct: number,
+): string[] {
+  if (nights <= 0 || total <= 0) return Array.from({ length: Math.max(0, nights) }, () => "");
+  const roomColumnTotal = amountInputType === "INCLUSIVE" ? total : total / (1 + gstRatePct / 100);
+  const perNight = Math.floor((roomColumnTotal / nights) * 100) / 100;
+  const shares = Array.from({ length: nights }, () => perNight);
+  const remainder = Math.round((roomColumnTotal - perNight * nights) * 100) / 100;
+  shares[0] = Math.round((shares[0] + remainder) * 100) / 100;
+  return shares.map((value) => value.toFixed(2));
+}
+
+/**
  * Optional audit detail for an OTA/offline booking.
  *
  * The parent wizard intentionally rerenders whenever a financial field changes.
@@ -65,11 +90,39 @@ export default function OfflineBookingGrid({
   const stayWindowKey = `${dayKey(checkinDate)}:${dayKey(checkoutDate)}`;
   const [entries, setEntries] = useState<DaywiseEntry[]>(() => createEntries(checkinDate, checkoutDate));
   const [gstRatePct, setGstRatePct] = useState(18);
+  // Auto-split distributes the booking total evenly across the nights. Any manual
+  // edit to a row switches this off so the operator's own figures are preserved;
+  // "Reset to auto-split" turns it back on.
+  const [autoSplit, setAutoSplit] = useState(true);
   const lastPublishedPayload = useRef<string | null>(null);
   const gstRate = gstRatePct / 100;
 
   useEffect(() => {
     const nextDates = createEntries(checkinDate, checkoutDate);
+
+    // Auto-split mode: seed each night's Room fee with an even share of the
+    // booking total so the nightly sum matches the statement out of the box.
+    // Reruns as the total / GST treatment / slab change while still in auto mode.
+    if (autoSplit) {
+      const total = Math.max(0, totalBookingPrice || 0);
+      const roomFees = distributeRoomFees(total, nextDates.length, amountInputType, gstRatePct);
+      const seeded = nextDates.map((entry, index) => ({ ...entry, roomFee: roomFees[index] ?? "" }));
+      setEntries((current) => {
+        const unchanged =
+          current.length === seeded.length &&
+          current.every(
+            (entry, index) =>
+              entry.date === seeded[index].date &&
+              entry.roomFee === seeded[index].roomFee &&
+              entry.extraGuestFee === seeded[index].extraGuestFee &&
+              entry.discount === seeded[index].discount,
+          );
+        return unchanged ? current : seeded;
+      });
+      return;
+    }
+
+    // Manual mode: keep whatever the operator typed, re-keyed to the current dates.
     setEntries((current) => {
       const currentByDate = new Map(current.map((entry) => [entry.date, entry]));
       const next = nextDates.map((entry) => currentByDate.get(entry.date) ?? entry);
@@ -79,7 +132,7 @@ export default function OfflineBookingGrid({
     });
     // stayWindowKey is deliberately a string, not the two Date instances.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stayWindowKey]);
+  }, [stayWindowKey, autoSplit, totalBookingPrice, amountInputType, gstRatePct]);
 
   const calculatedPayload = useMemo(
     () =>
@@ -129,6 +182,8 @@ export default function OfflineBookingGrid({
   const isMismatch = hasEnteredAmount && Math.abs(difference) > 0.05;
 
   const updateEntry = (index: number, field: Exclude<keyof DaywiseEntry, "date">, value: string) => {
+    // The operator is overriding the auto-split — stop reseeding so their edit sticks.
+    setAutoSplit(false);
     setEntries((current) => current.map((entry, entryIndex) => (entryIndex === index ? { ...entry, [field]: value } : entry)));
   };
 
@@ -146,8 +201,17 @@ export default function OfflineBookingGrid({
         <div>
           <h3 className="text-[14px] font-extrabold">Night-wise audit breakup</h3>
           <p className="mt-0.5 text-[12px]" style={{ color: "var(--mut)" }}>
-            Optional. Keep the total above as the source of truth; use this only when the OTA statement provides nightly figures.
+            Pre-filled by splitting the booking total evenly across the nights. Edit any night to match the OTA statement; the nightly sum must stay equal to the total.
           </p>
+          <div className="mt-1.5 text-[10.5px]">
+            {autoSplit ? (
+              <span className="font-bold" style={{ color: "var(--green)" }}>Auto: even split across nights</span>
+            ) : (
+              <button type="button" onClick={() => setAutoSplit(true)} className="font-extrabold" style={{ color: "var(--acc)" }}>
+                Reset to auto-split
+              </button>
+            )}
+          </div>
         </div>
         <label className="text-[12px] font-bold" style={{ color: "var(--mut)" }}>
           GST slab

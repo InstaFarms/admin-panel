@@ -20,14 +20,27 @@ function RerenderingHarness() {
 }
 
 describe("OfflineBookingGrid", () => {
+  it("auto-splits the booking total evenly across the nights", async () => {
+    render(<RerenderingHarness />);
+
+    // ₹1,180 over two nights (INCLUSIVE) seeds ₹590.00 into each Room field.
+    await waitFor(() => expect(screen.getByLabelText("Room amount for 26 Aug 2026")).toHaveValue("590.00"));
+    expect(screen.getByLabelText("Room amount for 27 Aug 2026")).toHaveValue("590.00");
+  });
+
   it("keeps a typed nightly amount after the parent rerenders", async () => {
     render(<RerenderingHarness />);
 
     const firstNightAmount = screen.getByLabelText("Room amount for 26 Aug 2026");
+    // Editing a night overrides the auto-split; the typed value must then survive
+    // the parent's inline-`new Date(...)` rerenders (the original regression here).
     fireEvent.change(firstNightAmount, { target: { value: "1180" } });
 
     await waitFor(() => expect(firstNightAmount).toHaveValue("1180"));
-    expect(screen.getAllByText("₹1,180.00")).toHaveLength(3);
+    expect(firstNightAmount).toHaveValue("1180");
+    // Overriding one night switches off auto-split, so the other night keeps its seed.
+    expect(screen.getByLabelText("Room amount for 27 Aug 2026")).toHaveValue("590.00");
+    expect(screen.getByText("Reset to auto-split")).toBeInTheDocument();
   });
 
   it("uses the wizard theme tokens rather than forcing a white table", () => {

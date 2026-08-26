@@ -961,7 +961,7 @@ export default function OtaLoggingForm() {
             Night-wise breakup <span className="ml-1 text-[11.5px] font-semibold" style={{ color: "var(--mut)" }}>(optional audit detail)</span>
           </summary>
           <p className="mt-1.5 text-[11.5px]" style={{ color: "var(--mut)" }}>
-            Add nightly figures only when the OTA statement provides them. Your booking total above remains the single source of truth.
+            Pre-filled by evenly splitting your booking total across the stay. Edit any night to match the OTA statement — the nightly sum must still equal the total above.
           </p>
           <div className="mt-3.5">
           <OfflineBookingGrid
