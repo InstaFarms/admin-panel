@@ -40,6 +40,7 @@ export default function OtaLoggingForm() {
   const [feed, setFeed] = useState<ImportedIcalBookingRow[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedError, setFeedError] = useState<string | null>(null);
+  const [showDeductions, setShowDeductions] = useState(false);
 
   // Real data: real iCal-synced `blocking` rows and manually-logged
   // `thirdPartyBookings` rows the admin hasn't completed yet, from the same
@@ -184,6 +185,12 @@ export default function OtaLoggingForm() {
   const platformCommissionTotal = platformCommission + platformCommissionGst;
   const tds = Math.max(0, Number(s.ota.tds) || 0);
   const net = Math.max(0, gross - comm - occTax - platformCommissionTotal - tds);
+  const totalDeductions = comm + occTax + platformCommissionTotal + tds;
+  // These are stable Date instances. Passing new Date(...) during every parent
+  // render used to make the detail grid interpret a keystroke as a date change
+  // and clear the amount the operator had just typed.
+  const daywiseCheckinDate = useMemo(() => (s.checkIn ? new Date(`${s.checkIn}T00:00:00`) : undefined), [s.checkIn]);
+  const daywiseCheckoutDate = useMemo(() => (s.checkOut ? new Date(`${s.checkOut}T00:00:00`) : undefined), [s.checkOut]);
 
   const guestPicker = (
     <div style={{ position: "relative" }}>
@@ -566,8 +573,56 @@ export default function OtaLoggingForm() {
         <div className="mb-2.5 text-[11px] font-extrabold uppercase tracking-[0.16em]" style={{ color: "var(--mut)" }}>
           04 · Platform settlement
         </div>
-        <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
-          <div>
+        <div className="rounded-2xl p-4" style={{ background: "var(--soft)", border: "1px solid var(--line)" }}>
+          <FieldLabel required>Guest paid to OTA</FieldLabel>
+          <div className="flex flex-wrap gap-2">
+            <div className="relative min-w-[180px] flex-1">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] font-extrabold" style={{ color: "var(--mut)" }}>₹</span>
+              <input
+                aria-label="Guest paid to OTA"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                className={`${inputCls} pl-7 tabular-nums`}
+                style={inputStyle}
+                value={s.ota.amount}
+                onChange={(event) => patch({ ota: { ...s.ota, amount: event.target.value } })}
+                placeholder="0"
+              />
+            </div>
+            <select
+              aria-label="Guest amount GST treatment"
+              className="min-w-[158px] rounded-xl px-3 py-2.5 text-[13px] font-bold"
+              style={inputStyle}
+              value={s.ota.amountInputType}
+              onChange={(event) => patch({ ota: { ...s.ota, amountInputType: event.target.value as "INCLUSIVE" | "EXCLUSIVE" } })}
+            >
+              <option value="INCLUSIVE">Amount includes GST</option>
+              <option value="EXCLUSIVE">Amount excludes GST</option>
+            </select>
+          </div>
+          <p className="mt-1.5 text-[11.5px]" style={{ color: "var(--mut)" }}>
+            Copy the booking total once from the OTA statement. The detailed fields below are optional deductions, not another total.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowDeductions((open) => !open)}
+          aria-expanded={showDeductions}
+          className="mt-3.5 flex w-full items-center justify-between gap-3 rounded-xl px-3.5 py-3 text-left"
+          style={{ background: "var(--soft)", border: "1px solid var(--line)" }}
+        >
+          <span>
+            <span className="block text-[13px] font-extrabold">Add statement deductions</span>
+            <span className="mt-0.5 block text-[11.5px]" style={{ color: "var(--mut)" }}>Only enter an OTA fee, tax, TDS or Mago commission when it appears on the statement.</span>
+          </span>
+          <span className="whitespace-nowrap text-[12px] font-extrabold" style={{ color: "var(--acc)" }}>{showDeductions ? "Hide" : "Add"}</span>
+        </button>
+
+        {showDeductions && (
+        <div className="ibw-fade-up mt-3.5 grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+          <div className="hidden">
             <FieldLabel required>Guest amount copied from OTA statement</FieldLabel>
             <select
               className={inputCls}
@@ -579,7 +634,10 @@ export default function OtaLoggingForm() {
               <option value="EXCLUSIVE">GST exclusive</option>
             </select>
             <input
-              className="mt-2 w-full"
+              aria-label="Guest amount copied from OTA statement"
+              type="text"
+              autoComplete="off"
+              className={`${inputCls} mt-2 tabular-nums`}
               style={inputStyle}
               inputMode="decimal"
               value={s.ota.amount}
@@ -611,7 +669,10 @@ export default function OtaLoggingForm() {
               <option value="INCLUSIVE">Commission including GST</option>
             </select>
             <input
-              className="mt-2 w-full"
+              aria-label="Platform commission deduction"
+              type="text"
+              autoComplete="off"
+              className={`${inputCls} mt-2 tabular-nums`}
               style={inputStyle}
               inputMode="decimal"
               value={s.ota.platformCommission}
@@ -631,7 +692,20 @@ export default function OtaLoggingForm() {
             />
           </div>
         </div>
-        <div className="mt-3.5 rounded-2xl p-3.5" style={{ background: "var(--soft)", border: "1px solid var(--line)" }}>
+        )}
+        <div className="mt-3.5 grid gap-px overflow-hidden rounded-2xl sm:grid-cols-3" style={{ background: "var(--line)", border: "1px solid var(--line)" }}>
+          {[
+            { label: "Guest paid to OTA", value: money(gross), color: "var(--txt)" },
+            { label: "Statement deductions", value: `−${money(totalDeductions)}`, color: totalDeductions > 0 ? "var(--bad)" : "var(--mut)" },
+            { label: "Expected OTA remittance", value: money(net), color: "var(--green)" },
+          ].map((summary) => (
+            <div key={summary.label} className="px-4 py-3" style={{ background: "var(--soft)" }}>
+              <div className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "var(--mut)" }}>{summary.label}</div>
+              <div className="mt-0.5 text-[16px] font-extrabold tabular-nums" style={{ color: summary.color }}>{summary.value}</div>
+            </div>
+          ))}
+        </div>
+        <div className="hidden" aria-hidden="true">
           {[
             { k: "Collected by OTA from guest", v: money(gross) },
             { k: "Booking value before GST", v: money(grossExclGst) },
@@ -653,15 +727,23 @@ export default function OtaLoggingForm() {
             <span className="tabular-nums">{money(net)}</span>
           </div>
         </div>
-        <div className="mt-3.5">
-          <OfflineBookingGrid 
-            checkinDate={s.checkIn ? new Date(s.checkIn) : undefined} 
-            checkoutDate={s.checkOut ? new Date(s.checkOut) : undefined} 
+        <details className="mt-3.5 rounded-2xl p-3.5" style={{ background: "var(--soft)", border: "1px solid var(--line)" }}>
+          <summary className="cursor-pointer list-none text-[13px] font-extrabold" style={{ color: "var(--txt)" }}>
+            Night-wise breakup <span className="ml-1 text-[11.5px] font-semibold" style={{ color: "var(--mut)" }}>(optional audit detail)</span>
+          </summary>
+          <p className="mt-1.5 text-[11.5px]" style={{ color: "var(--mut)" }}>
+            Add nightly figures only when the OTA statement provides them. Your booking total above remains the single source of truth.
+          </p>
+          <div className="mt-3.5">
+          <OfflineBookingGrid
+            checkinDate={daywiseCheckinDate}
+            checkoutDate={daywiseCheckoutDate}
             amountInputType={s.ota.amountInputType}
             totalBookingPrice={gross}
-            onPayloadChange={(payload) => patch({ ota: { ...s.ota, daywiseBreakup: payload } })} 
+            onPayloadChange={(payload) => patch({ ota: { ...s.ota, daywiseBreakup: payload } })}
           />
-        </div>
+          </div>
+        </details>
         <div className="mt-3.5">
           <FieldLabel>Notes</FieldLabel>
           <textarea
