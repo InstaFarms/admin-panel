@@ -822,6 +822,12 @@ export const SIDEBAR_NAV: SidebarNavEntry[] = [
             activeMatch: "exact",
           },
           {
+            href: "/admin/property-onboarding/submissions",
+            label: "Submission Review",
+            icon: HiClipboardDocumentList,
+            activeMatch: "/admin/property-onboarding/submissions",
+          },
+          {
             href: "/admin/property-onboarding/building-levels",
             label: "Building Levels",
             icon: HiViewGrid,
