@@ -50,11 +50,19 @@ export default function ShortFlowDone() {
     window.location.href = "/admin/bookings/new-reservation";
   };
 
-  const gross = Number(s.ota.amount) || 0;
-  const comm = Number(s.ota.commission) || 0;
-  const occTax = Number(s.ota.occTax) || 0;
-  const tds = Number(s.ota.tds) || 0;
-  const net = gross - comm - occTax - tds;
+  const enteredGross = Math.max(0, Number(s.ota.amount) || 0);
+  const occTax = Math.max(0, Number(s.ota.occTax) || 0);
+  const gross = s.ota.amountInputType === "EXCLUSIVE" ? enteredGross + occTax : enteredGross;
+  const grossExclGst = Math.max(0, gross - occTax);
+  const comm = Math.max(0, Number(s.ota.commission) || 0);
+  const platformCommissionInput = Math.max(0, Number(s.ota.platformCommission) || 0);
+  const platformCommissionGst = Math.max(0, Number(s.ota.platformCommissionGst) || 0);
+  const platformCommission =
+    s.ota.commissionGstMode === "INCLUSIVE"
+      ? Math.max(0, platformCommissionInput - platformCommissionGst)
+      : platformCommissionInput;
+  const tds = Math.max(0, Number(s.ota.tds) || 0);
+  const net = Math.max(0, gross - comm - occTax - platformCommission - platformCommissionGst - tds);
 
   return (
     <div className="ibw-card overflow-hidden" style={{ maxWidth: 720, margin: "0 auto" }}>
@@ -101,9 +109,12 @@ export default function ShortFlowDone() {
             </div>
             {[
               { k: "Collected by OTA from guest", v: money(gross) },
-              { k: "Less host service fee (commission)", v: `−${money(comm)}` },
-              { k: "Less remitted occupancy tax (GST)", v: `−${money(occTax)}` },
+              { k: "Booking value before GST", v: money(grossExclGst) },
+              { k: "Less OTA commission / fee", v: `−${money(comm)}` },
+              { k: "Less booking GST collected", v: `−${money(occTax)}` },
               { k: "Less TDS deducted", v: `−${money(tds)}` },
+              { k: "Less platform commission", v: `−${money(platformCommission)}` },
+              { k: "Less GST on platform commission", v: `−${money(platformCommissionGst)}` },
             ].map((row) => (
               <div key={row.k} className="flex justify-between gap-2.5 py-1 text-[12.5px]">
                 <span style={{ color: "var(--mut)" }}>{row.k}</span>

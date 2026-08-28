@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { searchCustomer, createCustomer } from "@/actions/customerActions";
 import { searchOtaMatchCandidates, type ImportedIcalBookingRow } from "@/actions/bookingActions";
+import { fetchPropertyFullData } from "@/actions/propertyActions";
+import { fetchAccommodationGstConfig } from "@/actions/taxConfigurationActions";
+import { normalizePropertyFullData } from "@/lib/properties/fullPropertyData";
 import type { CustomerData } from "@/utils/types";
 import { useWizard, money } from "../WizardContext";
 import { useWizardProperties } from "../useWizardProperties";
@@ -10,9 +13,50 @@ import { useDebouncedCallback } from "@/utils/debounce";
 import { FieldLabel, inputCls, inputStyle } from "./FieldBits";
 import StayCalendar from "./StayCalendar";
 import OfflineBookingGrid from "../../edit/OfflineBookingGrid";
+import {
+  calculateOtaSettlement,
+  DEFAULT_ACCOMMODATION_GST_POLICY,
+  moneyInput,
+  type AccommodationGstPolicy,
+} from "../otaSettlement";
 
 const OTA_CHANNELS = ["Airbnb", "Booking.com", "MakeMyTrip", "Agoda", "Goibibo", "Other"];
 
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+
+const asNonNegativeNumber = (value: unknown): number | null => {
+  const number = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+  return Number.isFinite(number) && number >= 0 ? number : null;
+};
+
+const brandSlug = (brandName: string): "instafarms" | "mago" | "listing" => {
+  const name = brandName.trim().toLowerCase();
+  if (name.includes("mago")) return "mago";
+  if (name.includes("listing")) return "listing";
+  return "instafarms";
+};
+
+const appTypeForBrand = (brandName: string) =>
+  brandSlug(brandName) === "mago" ? "MAGO_ADMIN" : "INSTAFARMS_ADMIN";
+
+const normalizedMoneyInput = (value: string) => {
+  const digitsAndDots = value.replace(/[^\d.]/g, "");
+  const [integer = "", ...decimalParts] = digitsAndDots.split(".");
+  return decimalParts.length ? `${integer}.${decimalParts.join("").slice(0, 2)}` : integer;
+};
+
+function AutoState({ active, label, onReset }: { active: boolean; label: string; onReset: () => void }) {
+  return active ? (
+    <span className="text-right text-[10.5px] font-bold" style={{ color: "var(--green)" }}>
+      Auto: {label}
+    </span>
+  ) : (
+    <button type="button" onClick={onReset} className="text-[10.5px] font-extrabold" style={{ color: "var(--acc)" }}>
+      Reset to auto
+    </button>
+  );
+}
 function shortDate(iso: string): string {
   return new Date(`${iso}T00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
@@ -40,6 +84,67 @@ export default function OtaLoggingForm() {
   const [feed, setFeed] = useState<ImportedIcalBookingRow[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedError, setFeedError] = useState<string | null>(null);
+  const [showDeductions, setShowDeductions] = useState(false);
+  const [gstPolicy, setGstPolicy] = useState<AccommodationGstPolicy>(DEFAULT_ACCOMMODATION_GST_POLICY);
+  const [propertyCommissionPercentage, setPropertyCommissionPercentage] = useState<number | null>(null);
+  const [commissionLoading, setCommissionLoading] = useState(false);
+  const [autoBookingGst, setAutoBookingGst] = useState(true);
+  const [autoPlatformCommission, setAutoPlatformCommission] = useState(true);
+  const [autoPlatformCommissionGst, setAutoPlatformCommissionGst] = useState(true);
+  // Draft buffer for the derived pre/post-GST counterpart field. Editing it
+  // back-solves the booking GST; the draft lets decimals type smoothly and is
+  // dropped on blur or whenever the primary amount / GST treatment changes so
+  // the field re-syncs to the computed value.
+  const [counterpartDraft, setCounterpartDraft] = useState<string | null>(null);
+  useEffect(() => {
+    setCounterpartDraft(null);
+  }, [s.ota.amountInputType, s.ota.amount]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchAccommodationGstConfig(s.brandId || null).then((result) => {
+      if (!cancelled && result.success) setGstPolicy(result.policy);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [s.brandId]);
+
+  // The property selector is intentionally lightweight, so load the selected
+  // property's full, brand-scoped commercial data before applying Mago's rate.
+  useEffect(() => {
+    if (!s.propertyId) {
+      setPropertyCommissionPercentage(null);
+      setCommissionLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setPropertyCommissionPercentage(null);
+    setCommissionLoading(true);
+    fetchPropertyFullData(s.propertyId, {
+      includeGallery: false,
+      brandId: s.brandId || undefined,
+      appType: appTypeForBrand(s.brandName),
+    })
+      .then((result) => {
+        if (cancelled) return;
+        const normalized = result.data ? normalizePropertyFullData(result.data) : null;
+        const brandNode = normalized ? asRecord(normalized.tabs.brandData)?.[brandSlug(s.brandName)] : null;
+        const commercial = asRecord(asRecord(brandNode)?.commercial) ?? asRecord(normalized?.tabs.commercial);
+        setPropertyCommissionPercentage(asNonNegativeNumber(commercial?.commissionPercentage));
+      })
+      .catch(() => {
+        if (!cancelled) setPropertyCommissionPercentage(null);
+      })
+      .finally(() => {
+        if (!cancelled) setCommissionLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [s.propertyId, s.brandId, s.brandName]);
 
   // Real data: real iCal-synced `blocking` rows and manually-logged
   // `thirdPartyBookings` rows the admin hasn't completed yet, from the same
@@ -110,6 +215,11 @@ export default function OtaLoggingForm() {
     const commissionAmount =
       gross != null && row.thirdPartyCommissionPercentage != null ? Math.round((gross * row.thirdPartyCommissionPercentage) / 100) : null;
     const gstAmount = gross != null && row.gstRate != null ? Math.round((gross * row.gstRate) / (100 + row.gstRate)) : null;
+    const platformCommissionAmount =
+      gross != null && row.platformCommissionPercentage != null
+        ? Math.round((Math.max(0, gross - (gstAmount || 0)) * row.platformCommissionPercentage) / 100 * 100) / 100
+        : null;
+    const platformCommissionGst = platformCommissionAmount != null ? Math.round(platformCommissionAmount * 0.18 * 100) / 100 : null;
     const tdsAmount = gross != null && row.tdsRate != null ? Math.round((gross * row.tdsRate) / 100) : null;
     const noteParts = [row.summary, channel === "Other" && row.source ? `Source on feed: ${row.source}` : null].filter(
       (v): v is string => !!v,
@@ -127,6 +237,8 @@ export default function OtaLoggingForm() {
         amount: gross != null ? String(gross) : s.ota.amount,
         commission: commissionAmount != null ? String(commissionAmount) : s.ota.commission,
         occTax: gstAmount != null ? String(gstAmount) : s.ota.occTax,
+        platformCommission: platformCommissionAmount != null ? String(platformCommissionAmount) : s.ota.platformCommission,
+        platformCommissionGst: platformCommissionGst != null ? String(platformCommissionGst) : s.ota.platformCommissionGst,
         tds: tdsAmount != null ? String(tdsAmount) : s.ota.tds,
         notes: noteParts.length ? noteParts.join(" — ") : s.ota.notes,
       },
@@ -136,6 +248,10 @@ export default function OtaLoggingForm() {
       ...(row.guestName ? { custQ: row.guestName } : {}),
       ...(row.guestPhone ? { ngPhone: row.guestPhone, ngName: row.guestName || "" } : {}),
     });
+    // A value supplied by the iCal feed is statement data, not an estimate.
+    setAutoBookingGst(row.gstRate == null);
+    setAutoPlatformCommission(row.platformCommissionPercentage == null);
+    setAutoPlatformCommissionGst(row.platformCommissionPercentage == null);
     if (row.guestPhone) runSearch(row.guestPhone);
     else if (row.guestName) runSearch(row.guestName);
   };
@@ -166,11 +282,69 @@ export default function OtaLoggingForm() {
     }
   };
 
-  const gross = Number(s.ota.amount) || 0;
-  const comm = Number(s.ota.commission) || 0;
-  const occTax = Number(s.ota.occTax) || 0;
-  const tds = Number(s.ota.tds) || 0;
-  const net = gross - comm - occTax - tds;
+  const autoSettlement = useMemo(
+    () =>
+      calculateOtaSettlement({
+        amount: s.ota.amount,
+        amountInputType: s.ota.amountInputType,
+        checkIn: s.checkIn,
+        checkOut: s.checkOut,
+        accommodationGstPolicy: gstPolicy,
+        platformCommissionPercentage: propertyCommissionPercentage,
+      }),
+    [s.ota.amount, s.ota.amountInputType, s.checkIn, s.checkOut, gstPolicy, propertyCommissionPercentage],
+  );
+
+  // Derived values are persisted with the wizard so the booking record matches
+  // the operator's visible settlement. Editing a field makes it a manual
+  // statement override until the operator chooses "Reset to auto".
+  useEffect(() => {
+    const hasAmount = s.ota.amount.trim().length > 0;
+    const next = { ...s.ota };
+    let changed = false;
+    const setIfDifferent = (key: "occTax" | "platformCommission" | "platformCommissionGst", value: string) => {
+      if (next[key] === value) return;
+      next[key] = value;
+      changed = true;
+    };
+
+    if (autoBookingGst) setIfDifferent("occTax", hasAmount ? moneyInput(autoSettlement.bookingGstAmount) : "");
+    if (autoPlatformCommission) setIfDifferent("platformCommission", hasAmount ? moneyInput(autoSettlement.platformCommissionAmount) : "");
+    if (autoPlatformCommissionGst) setIfDifferent("platformCommissionGst", hasAmount ? moneyInput(autoSettlement.platformCommissionGst) : "");
+    if (hasAmount && (autoPlatformCommission || autoPlatformCommissionGst) && next.commissionGstMode !== "EXCLUSIVE") {
+      next.commissionGstMode = "EXCLUSIVE";
+      changed = true;
+    }
+
+    if (changed) patch({ ota: next });
+    // Do not depend on individual deduction fields. Their edits are manual overrides.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoBookingGst, autoPlatformCommission, autoPlatformCommissionGst, autoSettlement, s.ota.amount, patch]);
+
+  // Persisted financial values are always normalised: the booking total is
+  // GST-inclusive and the platform commission base and its GST are separate.
+  // This lets an operator copy a statement exactly whether it reports its
+  // booking and commission figures before or after GST.
+  const enteredGross = Math.max(0, Number(s.ota.amount) || 0);
+  const occTax = Math.max(0, Number(s.ota.occTax) || 0);
+  const gross = s.ota.amountInputType === "EXCLUSIVE" ? enteredGross + occTax : enteredGross;
+  const grossExclGst = Math.max(0, gross - occTax);
+  const comm = Math.max(0, Number(s.ota.commission) || 0);
+  const platformCommissionInput = Math.max(0, Number(s.ota.platformCommission) || 0);
+  const platformCommissionGst = Math.max(0, Number(s.ota.platformCommissionGst) || 0);
+  const platformCommission =
+    s.ota.commissionGstMode === "INCLUSIVE"
+      ? Math.max(0, platformCommissionInput - platformCommissionGst)
+      : platformCommissionInput;
+  const platformCommissionTotal = platformCommission + platformCommissionGst;
+  const tds = Math.max(0, Number(s.ota.tds) || 0);
+  const net = Math.max(0, gross - comm - occTax - platformCommissionTotal - tds);
+  const totalDeductions = comm + occTax + platformCommissionTotal + tds;
+  // These are stable Date instances. Passing new Date(...) during every parent
+  // render used to make the detail grid interpret a keystroke as a date change
+  // and clear the amount the operator had just typed.
+  const daywiseCheckinDate = useMemo(() => (s.checkIn ? new Date(`${s.checkIn}T00:00:00`) : undefined), [s.checkIn]);
+  const daywiseCheckoutDate = useMemo(() => (s.checkOut ? new Date(`${s.checkOut}T00:00:00`) : undefined), [s.checkOut]);
 
   const guestPicker = (
     <div style={{ position: "relative" }}>
@@ -553,30 +727,222 @@ export default function OtaLoggingForm() {
         <div className="mb-2.5 text-[11px] font-extrabold uppercase tracking-[0.16em]" style={{ color: "var(--mut)" }}>
           04 · Platform settlement
         </div>
-        <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
-          <div>
-            <FieldLabel required>Total amount collected by OTA from user</FieldLabel>
-            <input className={inputCls} style={inputStyle} value={s.ota.amount} onChange={(e) => patch({ ota: { ...s.ota, amount: e.target.value } })} placeholder="0" />
+        <div className="rounded-2xl p-4" style={{ background: "var(--soft)", border: "1px solid var(--line)" }}>
+          <FieldLabel required>Guest paid to OTA</FieldLabel>
+          <div className="flex flex-wrap gap-2">
+            <div className="relative min-w-[180px] flex-1">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] font-extrabold" style={{ color: "var(--mut)" }}>₹</span>
+              <input
+                aria-label="Guest paid to OTA"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                className={`${inputCls} pl-7 tabular-nums`}
+                style={inputStyle}
+                value={s.ota.amount}
+                onChange={(event) => patch({ ota: { ...s.ota, amount: normalizedMoneyInput(event.target.value) } })}
+                placeholder="0"
+              />
+            </div>
+            <select
+              aria-label="Guest amount GST treatment"
+              className="min-w-[158px] rounded-xl px-3 py-2.5 text-[13px] font-bold"
+              style={inputStyle}
+              value={s.ota.amountInputType}
+              onChange={(event) => patch({ ota: { ...s.ota, amountInputType: event.target.value as "INCLUSIVE" | "EXCLUSIVE" } })}
+            >
+              <option value="INCLUSIVE">Amount includes GST</option>
+              <option value="EXCLUSIVE">Amount excludes GST</option>
+            </select>
+          </div>
+          <p className="mt-1.5 text-[11.5px]" style={{ color: "var(--mut)" }}>
+            Copy the booking total once from the OTA statement. Booking GST and Mago commission below are calculated from this amount and the selected property.
+          </p>
+          {s.ota.amount.trim().length > 0 && (
+            <div className="mt-3">
+              <FieldLabel>
+                {s.ota.amountInputType === "EXCLUSIVE" ? "Total (incl GST)" : "Amount before GST"}
+              </FieldLabel>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative min-w-[180px] flex-1">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] font-extrabold" style={{ color: "var(--mut)" }}>₹</span>
+                  <input
+                    aria-label={s.ota.amountInputType === "EXCLUSIVE" ? "Total including GST" : "Amount before GST"}
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    className={`${inputCls} pl-7 tabular-nums`}
+                    style={inputStyle}
+                    value={counterpartDraft !== null ? counterpartDraft : moneyInput(s.ota.amountInputType === "EXCLUSIVE" ? gross : grossExclGst)}
+                    onChange={(event) => {
+                      const raw = normalizedMoneyInput(event.target.value);
+                      setCounterpartDraft(raw);
+                      const entered = Math.max(0, Number(raw) || 0);
+                      const base = Math.max(0, Number(s.ota.amount) || 0);
+                      const nextGst =
+                        s.ota.amountInputType === "EXCLUSIVE"
+                          ? Math.max(0, entered - base)
+                          : Math.max(0, base - entered);
+                      setAutoBookingGst(false);
+                      patch({ ota: { ...s.ota, occTax: moneyInput(nextGst) } });
+                    }}
+                    onBlur={() => setCounterpartDraft(null)}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="flex items-center gap-2 text-[10.5px]" style={{ color: "var(--mut)" }}>
+                  <span>{s.ota.amountInputType === "EXCLUSIVE" ? "Pre-GST + GST." : "Total − GST."} Edit to override GST.</span>
+                  <AutoState active={autoBookingGst} label={`${autoSettlement.bookingGstRate}% GST`} onReset={() => setAutoBookingGst(true)} />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowDeductions((open) => !open)}
+          aria-expanded={showDeductions}
+          className="mt-3.5 flex w-full items-center justify-between gap-3 rounded-xl px-3.5 py-3 text-left"
+          style={{ background: "var(--soft)", border: "1px solid var(--line)" }}
+        >
+          <span>
+            <span className="block text-[13px] font-extrabold">Add statement deductions</span>
+            <span className="mt-0.5 block text-[11.5px]" style={{ color: "var(--mut)" }}>OTA fee and TDS come from the statement. GST and Mago commission are filled automatically and can be corrected here.</span>
+          </span>
+          <span className="whitespace-nowrap text-[12px] font-extrabold" style={{ color: "var(--acc)" }}>{showDeductions ? "Hide" : "Add"}</span>
+        </button>
+
+        {showDeductions && (
+        <div className="ibw-fade-up mt-3.5 grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+          <div className="hidden">
+            <FieldLabel required>Guest amount copied from OTA statement</FieldLabel>
+            <select
+              className={inputCls}
+              style={inputStyle}
+              value={s.ota.amountInputType}
+              onChange={(e) => patch({ ota: { ...s.ota, amountInputType: e.target.value as "INCLUSIVE" | "EXCLUSIVE" } })}
+            >
+              <option value="INCLUSIVE">GST inclusive</option>
+              <option value="EXCLUSIVE">GST exclusive</option>
+            </select>
+            <input
+              aria-label="Guest amount copied from OTA statement"
+              type="text"
+              autoComplete="off"
+              className={`${inputCls} mt-2 tabular-nums`}
+              style={inputStyle}
+              inputMode="decimal"
+              value={s.ota.amount}
+              onChange={(e) => patch({ ota: { ...s.ota, amount: normalizedMoneyInput(e.target.value) } })}
+              placeholder={s.ota.amountInputType === "INCLUSIVE" ? "Amount including GST" : "Amount before GST"}
+            />
           </div>
           <div>
-            <FieldLabel>Host service fee · platform commission</FieldLabel>
-            <input className={inputCls} style={inputStyle} value={s.ota.commission} onChange={(e) => patch({ ota: { ...s.ota, commission: e.target.value } })} placeholder="0" />
+            <FieldLabel>OTA commission / fee</FieldLabel>
+            <input className={inputCls} style={inputStyle} inputMode="decimal" value={s.ota.commission} onChange={(e) => patch({ ota: { ...s.ota, commission: normalizedMoneyInput(e.target.value) } })} placeholder="Enter only when shown on statement" />
           </div>
           <div>
             <FieldLabel>Remitted occupancy tax · GST collected from customer</FieldLabel>
-            <input className={inputCls} style={inputStyle} value={s.ota.occTax} onChange={(e) => patch({ ota: { ...s.ota, occTax: e.target.value } })} placeholder="0" />
+            <input
+              className={inputCls}
+              style={inputStyle}
+              inputMode="decimal"
+              value={s.ota.occTax}
+              onChange={(e) => {
+                setAutoBookingGst(false);
+                patch({ ota: { ...s.ota, occTax: normalizedMoneyInput(e.target.value) } });
+              }}
+              placeholder="Calculated from booking total"
+            />
+            <div className="mt-1 flex items-center justify-between gap-2 text-[10.5px]" style={{ color: "var(--mut)" }}>
+              <span>{s.ota.amountInputType === "INCLUSIVE" ? "Extracted from the total copied above." : "Added to the pre-GST amount copied above."}</span>
+              <AutoState active={autoBookingGst} label={`${autoSettlement.bookingGstRate}% GST`} onReset={() => setAutoBookingGst(true)} />
+            </div>
           </div>
           <div>
             <FieldLabel>TDS deducted</FieldLabel>
-            <input className={inputCls} style={inputStyle} value={s.ota.tds} onChange={(e) => patch({ ota: { ...s.ota, tds: e.target.value } })} placeholder="0" />
+            <input className={inputCls} style={inputStyle} inputMode="decimal" value={s.ota.tds} onChange={(e) => patch({ ota: { ...s.ota, tds: normalizedMoneyInput(e.target.value) } })} placeholder="Enter only when deducted" />
+          </div>
+          <div>
+            <FieldLabel>Mago commission deduction</FieldLabel>
+            <select
+              className={inputCls}
+              style={inputStyle}
+              value={s.ota.commissionGstMode}
+              onChange={(e) => {
+                setAutoPlatformCommission(false);
+                setAutoPlatformCommissionGst(false);
+                patch({ ota: { ...s.ota, commissionGstMode: e.target.value as "INCLUSIVE" | "EXCLUSIVE" } });
+              }}
+            >
+              <option value="EXCLUSIVE">Commission before GST</option>
+              <option value="INCLUSIVE">Commission including GST</option>
+            </select>
+            <input
+              aria-label="Platform commission deduction"
+              type="text"
+              autoComplete="off"
+              className={`${inputCls} mt-2 tabular-nums`}
+              style={inputStyle}
+              inputMode="decimal"
+              value={s.ota.platformCommission}
+              onChange={(e) => {
+                setAutoPlatformCommission(false);
+                patch({ ota: { ...s.ota, platformCommission: normalizedMoneyInput(e.target.value) } });
+              }}
+              placeholder="Calculated from property rate"
+            />
+            <div className="mt-1 flex items-center justify-between gap-2 text-[10.5px]" style={{ color: "var(--mut)" }}>
+              <span>Before GST, from the selected property&apos;s Mago rate.</span>
+              <AutoState
+                active={autoPlatformCommission}
+                label={commissionLoading ? "Loading rate…" : propertyCommissionPercentage == null ? "Rate not configured" : `${propertyCommissionPercentage}% property rate`}
+                onReset={() => setAutoPlatformCommission(true)}
+              />
+            </div>
+          </div>
+          <div>
+            <FieldLabel>GST on Mago commission</FieldLabel>
+            <input
+              className={inputCls}
+              style={inputStyle}
+              inputMode="decimal"
+              value={s.ota.platformCommissionGst}
+              onChange={(e) => {
+                setAutoPlatformCommissionGst(false);
+                patch({ ota: { ...s.ota, platformCommissionGst: normalizedMoneyInput(e.target.value) } });
+              }}
+              placeholder="Calculated at 18%"
+            />
+            <div className="mt-1 flex items-center justify-between gap-2 text-[10.5px]" style={{ color: "var(--mut)" }}>
+              <span>Applied to the Mago commission above.</span>
+              <AutoState active={autoPlatformCommissionGst} label="18% GST" onReset={() => setAutoPlatformCommissionGst(true)} />
+            </div>
           </div>
         </div>
-        <div className="mt-3.5 rounded-2xl p-3.5" style={{ background: "var(--soft)", border: "1px solid var(--line)" }}>
+        )}
+        <div className="mt-3.5 grid gap-px overflow-hidden rounded-2xl sm:grid-cols-3" style={{ background: "var(--line)", border: "1px solid var(--line)" }}>
+          {[
+            { label: "Guest paid to OTA", value: money(gross), color: "var(--txt)" },
+            { label: "Statement deductions", value: `−${money(totalDeductions)}`, color: totalDeductions > 0 ? "var(--bad)" : "var(--mut)" },
+            { label: "Expected OTA remittance", value: money(net), color: "var(--green)" },
+          ].map((summary) => (
+            <div key={summary.label} className="px-4 py-3" style={{ background: "var(--soft)" }}>
+              <div className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "var(--mut)" }}>{summary.label}</div>
+              <div className="mt-0.5 text-[16px] font-extrabold tabular-nums" style={{ color: summary.color }}>{summary.value}</div>
+            </div>
+          ))}
+        </div>
+        <div className="hidden" aria-hidden="true">
           {[
             { k: "Collected by OTA from guest", v: money(gross) },
-            { k: "Less host service fee (commission)", v: `−${money(comm)}` },
-            { k: "Less remitted occupancy tax (GST)", v: `−${money(occTax)}` },
+            { k: "Booking value before GST", v: money(grossExclGst) },
+            { k: "Less OTA commission / fee", v: `−${money(comm)}` },
+            { k: "Less booking GST collected", v: `−${money(occTax)}` },
             { k: "Less TDS deducted", v: `−${money(tds)}` },
+            { k: "Less platform commission", v: `−${money(platformCommission)}` },
+            { k: "Less GST on platform commission", v: `−${money(platformCommissionGst)}` },
           ].map((row) => (
             <div key={row.k} className="flex justify-between gap-2.5 py-1 text-[12.5px]">
               <span style={{ color: "var(--mut)" }}>{row.k}</span>
@@ -590,14 +956,23 @@ export default function OtaLoggingForm() {
             <span className="tabular-nums">{money(net)}</span>
           </div>
         </div>
-        <div className="mt-3.5">
-          <OfflineBookingGrid 
-            checkinDate={s.checkIn ? new Date(s.checkIn) : undefined} 
-            checkoutDate={s.checkOut ? new Date(s.checkOut) : undefined} 
-            totalBookingPrice={Number(s.ota.amount) || 0} 
-            onPayloadChange={(payload) => patch({ ota: { ...s.ota, daywiseBreakup: payload } })} 
+        <details className="mt-3.5 rounded-2xl p-3.5" style={{ background: "var(--soft)", border: "1px solid var(--line)" }}>
+          <summary className="cursor-pointer list-none text-[13px] font-extrabold" style={{ color: "var(--txt)" }}>
+            Night-wise breakup <span className="ml-1 text-[11.5px] font-semibold" style={{ color: "var(--mut)" }}>(optional audit detail)</span>
+          </summary>
+          <p className="mt-1.5 text-[11.5px]" style={{ color: "var(--mut)" }}>
+            Pre-filled by evenly splitting your booking total across the stay. Edit any night to match the OTA statement — the nightly sum must still equal the total above.
+          </p>
+          <div className="mt-3.5">
+          <OfflineBookingGrid
+            checkinDate={daywiseCheckinDate}
+            checkoutDate={daywiseCheckoutDate}
+            amountInputType={s.ota.amountInputType}
+            totalBookingPrice={gross}
+            onPayloadChange={(payload) => patch({ ota: { ...s.ota, daywiseBreakup: payload } })}
           />
-        </div>
+          </div>
+        </details>
         <div className="mt-3.5">
           <FieldLabel>Notes</FieldLabel>
           <textarea

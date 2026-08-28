@@ -101,8 +101,9 @@ export default function TemplatesPage() {
           checklistItemMasterId: id,
           itemName: master?.name,
           questionLabel: null,
-          minQuantity: 0,
-          maxQuantity: null,
+          captureMode: master?.itemType === "MAINTENANCE" ? "CHECK" : "ASSET",
+          minQuantity: master?.itemType === "MAINTENANCE" ? 1 : 0,
+          maxQuantity: master?.itemType === "MAINTENANCE" ? 1 : null,
           conditionRequired: true,
           minPhotos: 1,
           maxPhotos: null,
@@ -337,13 +338,29 @@ export default function TemplatesPage() {
                     {a.items.map((it: any, j: number) => (
                       <div
                         key={`${it.checklistItemMasterId}-${j}`}
-                        className="grid gap-2 rounded border p-3 md:grid-cols-[1.5fr_repeat(5,100px)_140px_auto]"
+                        className="grid gap-2 rounded border p-3 md:grid-cols-[1.5fr_120px_repeat(5,100px)_140px_auto]"
                       >
                         <div className="text-sm font-medium">
                           {it.itemName ||
                             items.find((x) => x.id === it.checklistItemMasterId)
                               ?.name}
                         </div>
+                        <Select
+                          aria-label="Capture mode"
+                          value={it.captureMode ?? "ASSET"}
+                          onChange={(e) => {
+                            const captureMode = e.target.value;
+                            itemPatch(draft, setDraft, n, j, {
+                              captureMode,
+                              ...(captureMode === "CHECK"
+                                ? { minQuantity: 1, maxQuantity: 1 }
+                                : {}),
+                            });
+                          }}
+                        >
+                          <option value="ASSET">Asset</option>
+                          <option value="CHECK">Operational check</option>
+                        </Select>
                         <Num
                           label="Min qty"
                           value={it.minQuantity}
@@ -396,7 +413,7 @@ export default function TemplatesPage() {
                             Always required
                           </option>
                           <option value="REQUIRED_FOR_EXCEPTION">
-                            Required for Ok/Subpar
+                            Required for exceptions/damage
                           </option>
                         </Select>
                         <Button

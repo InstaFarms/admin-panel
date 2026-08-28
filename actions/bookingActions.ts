@@ -2324,6 +2324,8 @@ export const logManualOtaBooking = async (input: {
   guestCount?: number;
   totalAmountInclGst: number;
   thirdPartyCommissionAmount?: number;
+  platformCommissionAmount?: number;
+  platformCommissionGst?: number;
   gstAmount?: number;
   tdsAmount?: number;
   notes?: string;

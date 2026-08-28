@@ -28,6 +28,7 @@ import ResortRoomsTabContainer from "./tabs/ResortRoomsTabContainer";
 import TabScopeGate from "./TabScopeGate";
 import type { BrandOption, SectionChange } from "./tabs/types";
 import PropertyGstStatusSection from "@/components/properties/gst-status/PropertyGstStatusSection";
+import PropertyCollectionAccountSection from "@/components/properties/collection-account/PropertyCollectionAccountSection";
 import { Lock } from "lucide-react";
 
 interface PropertyEditorTabsProps {
@@ -281,7 +282,10 @@ export function PropertyEditorTabs({
           <TabContentMotion>
             {activeScope === "property" ? (
               propertyId ? (
-                <PropertyGstStatusSection propertyId={propertyId} />
+                <div className="flex flex-col gap-4">
+                  <PropertyGstStatusSection propertyId={propertyId} />
+                  <PropertyCollectionAccountSection propertyId={propertyId} />
+                </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
                   Save the property first to configure shared GST status.

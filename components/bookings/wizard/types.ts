@@ -175,8 +175,15 @@ export type WizardState = {
   ota: {
     channel: string;
     ref: string;
+    /** The gross figure can be copied from an OTA statement either before or after GST. */
+    amountInputType: "INCLUSIVE" | "EXCLUSIVE";
     amount: string;
+    /** Fee charged by the OTA itself, if any. */
     commission: string;
+    /** Platform's own commission; GST is recorded separately for audit. */
+    platformCommission: string;
+    platformCommissionGst: string;
+    commissionGstMode: "INCLUSIVE" | "EXCLUSIVE";
     occTax: string;
     tds: string;
     notes: string;

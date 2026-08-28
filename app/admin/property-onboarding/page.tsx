@@ -7,6 +7,11 @@ import { getOnboardingReadiness } from "@/actions/propertyOnboardingActions";
 
 const sections = [
   [
+    "Submission Review",
+    "/admin/property-onboarding/submissions",
+    "Review new-property intakes, existing-property updates, and frozen evidence.",
+  ],
+  [
     "Building Levels",
     "/admin/property-onboarding/building-levels",
     "Define levels and the default entrance.",
