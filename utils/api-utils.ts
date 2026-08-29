@@ -10,6 +10,17 @@ interface APIRequestOptions extends RequestInit {
   appType?: string;
 }
 
+/** Preserves an API failure's HTTP status for server routes that proxy it. */
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
+
 /**
  * Generic function to make API calls with proper error handling
  */
@@ -83,7 +94,7 @@ export async function fetchAPI<T = any>(
         errorMessage = text?.trim() ? `${response.status} ${response.statusText}: ${text.trim()}` : `API Error: ${response.status} ${response.statusText}`;
       }
     }
-    throw new Error(errorMessage);
+    throw new ApiRequestError(errorMessage, response.status);
   }
 
   // If response is empty, return empty object
