@@ -1,13 +1,19 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { Button, Select, TextInput } from "flowbite-react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { Button, Select, Spinner, TextInput } from "flowbite-react";
+import { HiCheckCircle } from "react-icons/hi";
 import { createAdmin, editAdmin } from "@/actions/adminActions";
 import { PHONE_LENGTH } from "@/constants/auth";
 import { FIELD_EMAIL, FIELD_FIRST_NAME, FIELD_LAST_NAME, FIELD_PHONE } from "@/constants/admin";
-import { useAdminEditorForm } from "@/hooks/useAdminEditorForm";
+import { useAdminEditorFormContext } from "./AdminEditorFormContext";
+import AdminEditorSkeleton from "./AdminEditorSkeleton";
 import { parseServerActionResult } from "@/utils/utils";
 import type { Gender } from "@/utils/types";
+import { AnimatedFieldError } from "@/components/ui/AnimatedFieldError";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { prefersReducedMotion, pulseRing } from "@/lib/motion";
+import { staggerReveal, popCheck } from "@/components/bookings/wizard/gsapHelpers";
 
 interface AdminProfileInlineEditorProps {
   adminId?: string;
@@ -60,16 +66,16 @@ function FieldBlock({
         <label className="text-sm font-medium text-gray-700 dark:text-slate-200">{label}</label>
       </div>
       {children}
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <AnimatedFieldError>{error}</AnimatedFieldError> : null}
       {!error && hint ? <p className="text-sm text-gray-500 dark:text-slate-300">{hint}</p> : null}
     </div>
   );
 }
 
-const GENDER_CHOICES: { value: Gender; label: string; symbol: string }[] = [
-  { value: "Male", label: "Male", symbol: "♂" },
-  { value: "Female", label: "Female", symbol: "♀" },
-  { value: "Other", label: "Other", symbol: "⚥" },
+const GENDER_OPTIONS: { value: Gender; label: string; icon: string }[] = [
+  { value: "Male", label: "Male", icon: "♂" },
+  { value: "Female", label: "Female", icon: "♀" },
+  { value: "Other", label: "Other", icon: "⚥" },
 ];
 
 function GenderPicker({
@@ -82,38 +88,17 @@ function GenderPicker({
   disabled?: boolean;
 }) {
   return (
-    <div
-      role="radiogroup"
-      aria-label="Gender"
-      className="flex w-full gap-1.5 rounded-xl border border-slate-300 bg-white p-1.5 shadow-sm dark:border-slate-600 dark:bg-slate-800/80"
-    >
-      {GENDER_CHOICES.map((choice) => {
-        const selected = value === choice.value;
-        return (
-          <button
-            key={choice.value}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            disabled={disabled}
-            onClick={() => onChange(selected ? "" : choice.value)}
-            className={[
-              "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
-              "disabled:cursor-not-allowed disabled:opacity-50",
-              selected
-                ? "bg-blue-600 text-white shadow-sm dark:bg-blue-500"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700/70 dark:hover:text-white",
-            ].join(" ")}
-          >
-            <span aria-hidden className="text-base leading-none">
-              {choice.symbol}
-            </span>
-            {choice.label}
-          </button>
-        );
-      })}
-    </div>
+    <>
+      <SegmentedControl<Gender>
+        ariaLabel="Gender"
+        options={GENDER_OPTIONS}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        allowClear
+      />
+      <input type="hidden" name="gender" value={value} />
+    </>
   );
 }
 
@@ -122,6 +107,35 @@ const INPUT_CLASS =
 
 const SELECT_CLASS =
   "[&_select]:rounded-xl [&_select]:border-slate-300 [&_select]:bg-white [&_select]:text-gray-900 [&_select]:shadow-sm dark:[&_select]:border-slate-600 dark:[&_select]:bg-slate-800/80 dark:[&_select]:text-white";
+
+function PhoneStatusHint({ status }: { status: "idle" | "checking" | "available" | "taken" }) {
+  const checkRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (status === "available" && checkRef.current) {
+      popCheck(checkRef.current);
+    }
+  }, [status]);
+
+  if (status === "checking") {
+    return (
+      <p className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-slate-300">
+        <Spinner size="sm" /> Checking availability…
+      </p>
+    );
+  }
+  if (status === "available") {
+    return (
+      <p className="flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400">
+        <span ref={checkRef} className="inline-flex">
+          <HiCheckCircle className="h-4 w-4" />
+        </span>
+        This number is available.
+      </p>
+    );
+  }
+  return null;
+}
 
 export default function AdminProfileInlineEditor({
   adminId,
@@ -151,11 +165,38 @@ export default function AdminProfileInlineEditor({
     fetchLoading,
     errors,
     isEditMode,
+    adminData,
+    phoneStatus,
+    focusRequestToken,
+    focusFieldId,
     handleFieldChange,
     updateAddressField,
     handleSubmit,
     applyWhatsappFromContact,
-  } = useAdminEditorForm(adminId, { canManageRole });
+  } = useAdminEditorFormContext();
+
+  const gridRef = useRef<HTMLDivElement>(null);
+  const whatsappInputRef = useRef<HTMLInputElement>(null);
+  const didRevealRef = useRef(false);
+
+  // Stagger the section cards in once, on first mount.
+  useEffect(() => {
+    if (didRevealRef.current || !gridRef.current) return;
+    didRevealRef.current = true;
+    staggerReveal(gridRef.current);
+  }, []);
+
+  // Scroll to + focus the first invalid field when a submit is blocked.
+  useEffect(() => {
+    if (!focusRequestToken || !focusFieldId) return;
+    const el = document.getElementById(focusFieldId);
+    if (!el) return;
+    el.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "center",
+    });
+    (el as HTMLElement).focus({ preventScroll: true });
+  }, [focusRequestToken, focusFieldId]);
 
   const onSubmit = async (formData: FormData) => {
     if (isEditMode && adminId) {
@@ -165,12 +206,13 @@ export default function AdminProfileInlineEditor({
     return parseServerActionResult(createAdmin(formData));
   };
 
+  const applyWhatsapp = (source: "primary" | "alternate") => {
+    applyWhatsappFromContact(source);
+    pulseRing(whatsappInputRef.current);
+  };
+
   if (fetchLoading) {
-    return (
-      <div className="flex min-h-[280px] items-center justify-center rounded-[28px] border border-slate-200 bg-slate-100 text-lg text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-slate-300">
-        Loading admin data...
-      </div>
-    );
+    return <AdminEditorSkeleton />;
   }
 
   return (
@@ -183,7 +225,7 @@ export default function AdminProfileInlineEditor({
       }}
       className="space-y-4"
     >
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+      <div ref={gridRef} className="grid grid-cols-1 gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <SectionCard
           title="Core Identity"
           subtitle="Update the admin's primary identity and contact information."
@@ -250,6 +292,10 @@ export default function AdminProfileInlineEditor({
                 disabled={!canEdit}
                 className={INPUT_CLASS}
               />
+              {!errors[FIELD_PHONE] &&
+              phoneNumber.trim() !== (adminData?.phoneNumber ?? "").trim() ? (
+                <PhoneStatusHint status={phoneStatus} />
+              ) : null}
             </FieldBlock>
 
             <FieldBlock
@@ -259,6 +305,7 @@ export default function AdminProfileInlineEditor({
             >
               <div className="space-y-3">
                 <TextInput
+                  ref={whatsappInputRef}
                   id="whatsappNumber"
                   name="whatsappNumber"
                   type="tel"
@@ -282,7 +329,7 @@ export default function AdminProfileInlineEditor({
                       pill
                       size="xs"
                       disabled={!canEdit || !phoneNumber.trim()}
-                      onClick={() => applyWhatsappFromContact("primary")}
+                      onClick={() => applyWhatsapp("primary")}
                     >
                       Use Primary Number
                     </Button>
@@ -292,7 +339,7 @@ export default function AdminProfileInlineEditor({
                       pill
                       size="xs"
                       disabled={!canEdit || !alternateContact.trim()}
-                      onClick={() => applyWhatsappFromContact("alternate")}
+                      onClick={() => applyWhatsapp("alternate")}
                     >
                       Use Alternate Contact
                     </Button>
@@ -351,7 +398,6 @@ export default function AdminProfileInlineEditor({
                 hint="Optional — tap the selected option again to clear it."
               >
                 <GenderPicker value={gender} onChange={setGender} disabled={!canEdit} />
-                <input type="hidden" name="gender" value={gender} />
               </FieldBlock>
             </div>
           </SectionCard>

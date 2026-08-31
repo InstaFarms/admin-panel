@@ -86,35 +86,67 @@ function mapAddressDetailsToFields(
   };
 }
 
+export type PhoneStatus = "idle" | "checking" | "available" | "taken";
+
+/** Field ids, in the visual order used to pick the first invalid one to focus. */
+const FIELD_ORDER = [
+  FIELD_FIRST_NAME,
+  FIELD_LAST_NAME,
+  FIELD_EMAIL,
+  FIELD_PHONE,
+  FIELD_WHATSAPP,
+  FIELD_ALTERNATE_CONTACT,
+] as const;
+
 export function useAdminEditorForm(
   adminId?: string,
-  options?: { canManageRole?: boolean }
+  options?: { canManageRole?: boolean; initialAdmin?: Admin | null }
 ) {
   const router = useRouter();
   const canManageRole = options?.canManageRole ?? false;
+  const initialAdmin = options?.initialAdmin ?? null;
 
-  // Form fields
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [panelRole, setPanelRole] = useState<AdminPanelRole>("OPS_TEAM");
-  const [gender, setGender] = useState<Gender | "">("");
-  const [whatsappNumber, setWhatsappNumber] = useState("");
-  const [alternateContact, setAlternateContact] = useState("");
-  const [addressFields, setAddressFields] = useState<AddressFields>(EMPTY_ADDRESS_FIELDS);
+  // Form fields - seeded synchronously from initialAdmin (passed by the page's
+  // server component) so edit mode never has to re-fetch what the page already
+  // loaded.
+  const [firstName, setFirstName] = useState(() => initialAdmin?.firstName || "");
+  const [lastName, setLastName] = useState(() => initialAdmin?.lastName || "");
+  const [email, setEmail] = useState(() => initialAdmin?.email || "");
+  const [phoneNumber, setPhoneNumber] = useState(() => initialAdmin?.phoneNumber || "");
+  const [panelRole, setPanelRole] = useState<AdminPanelRole>(
+    () => (initialAdmin?.panelRole as AdminPanelRole) || "OPS_TEAM"
+  );
+  const [gender, setGender] = useState<Gender | "">(
+    () => (initialAdmin?.gender as Gender) || ""
+  );
+  const [whatsappNumber, setWhatsappNumber] = useState(
+    () => initialAdmin?.whatsappNumber || ""
+  );
+  const [alternateContact, setAlternateContact] = useState(
+    () => initialAdmin?.alternateContact || ""
+  );
+  const [addressFields, setAddressFields] = useState<AddressFields>(() =>
+    initialAdmin ? mapAddressDetailsToFields(initialAdmin.addressDetails) : EMPTY_ADDRESS_FIELDS
+  );
 
   // UI state
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
-  const [adminData, setAdminData] = useState<Admin | null>(null);
+  const [adminData, setAdminData] = useState<Admin | null>(() => initialAdmin);
+  const [phoneStatus, setPhoneStatus] = useState<PhoneStatus>("idle");
+  // Bumped when a submit is blocked by validation - the submit button shakes on
+  // change, and the editor scrolls/focuses the first invalid field.
+  const [validationFailToken, setValidationFailToken] = useState(0);
+  const [focusRequestToken, setFocusRequestToken] = useState(0);
+  const [focusFieldId, setFocusFieldId] = useState<string | null>(null);
 
   const isEditMode = !!adminId;
 
-  // Fetch admin data in edit mode
+  // Fetch admin data in edit mode - only as a fallback when the caller did not
+  // hand us the already-loaded admin (initialAdmin).
   useEffect(() => {
-    if (!adminId) return;
+    if (!adminId || initialAdmin) return;
 
     const fetchAdmin = async () => {
       setFetchLoading(true);
@@ -141,6 +173,7 @@ export function useAdminEditorForm(
     };
 
     fetchAdmin();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminId]);
 
   // Validation helpers
@@ -318,6 +351,11 @@ export function useAdminEditorForm(
       try {
         const isAvailable = await checkAdminPhoneAvailability(digits, currentAdminId);
 
+        const stale = phoneNumber.trim().replace(/\D/g, "") !== digits;
+        if (!stale) {
+          setPhoneStatus(isAvailable ? "available" : "taken");
+        }
+
         setErrors((prev) => {
           const latestDigits = phoneNumber.trim().replace(/\D/g, "");
           if (latestDigits !== digits) {
@@ -353,6 +391,7 @@ export function useAdminEditorForm(
         });
       } catch (error) {
         console.error("Phone availability check failed:", error);
+        setPhoneStatus("idle");
       }
     },
     400,
@@ -363,6 +402,7 @@ export function useAdminEditorForm(
 
     if (!digits || digits.length !== PHONE_LENGTH) {
       verifyPrimaryPhoneAvailability.cancel();
+      setPhoneStatus("idle");
       setErrors((prev) => {
         if (prev[FIELD_PHONE] !== DUPLICATE_PHONE_ERROR) {
           return prev;
@@ -377,9 +417,11 @@ export function useAdminEditorForm(
 
     if (validatePhone(digits)) {
       verifyPrimaryPhoneAvailability.cancel();
+      setPhoneStatus("idle");
       return;
     }
 
+    setPhoneStatus("checking");
     verifyPrimaryPhoneAvailability(digits, adminId);
 
     return () => {
@@ -387,8 +429,9 @@ export function useAdminEditorForm(
     };
   }, [phoneNumber, adminId, verifyPrimaryPhoneAvailability]);
 
-  // Form validation before submit
-  const validateForm = (): boolean => {
+  // Form validation before submit. Returns the errors map (empty === valid) so
+  // the caller can also pick the first invalid field to focus.
+  const validateForm = (): FieldErrors => {
     const newErrors: FieldErrors = {};
 
     // First name
@@ -427,30 +470,41 @@ export function useAdminEditorForm(
       }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return newErrors;
   };
 
   // Form submission
   const handleSubmit = async (submitFn: (formData: FormData) => Promise<any>) => {
-    if (!validateForm()) {
+    if (loading) return; // re-entry guard - blocks double submit
+
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
       toast.error(TOAST_MESSAGES.FILL_REQUIRED);
+      setValidationFailToken((n) => n + 1);
+      const firstInvalid = FIELD_ORDER.find((id) => validationErrors[id]);
+      if (firstInvalid) {
+        setFocusFieldId(firstInvalid);
+        setFocusRequestToken((n) => n + 1);
+      }
       return;
     }
 
     setLoading(true);
+    setPhoneStatus("checking");
 
-    try {
+    const runSubmit = async () => {
       const normalizedPhoneNumber = phoneNumber.trim().replace(/\D/g, "");
       const isPhoneAvailable = await checkAdminPhoneAvailability(normalizedPhoneNumber, adminId);
 
       if (!isPhoneAvailable) {
+        setPhoneStatus("taken");
         setErrors((prev) => ({
           ...prev,
           [FIELD_PHONE]: DUPLICATE_PHONE_ERROR,
         }));
-        toast.error(DUPLICATE_PHONE_ERROR);
-        return;
+        throw new Error(DUPLICATE_PHONE_ERROR);
       }
+      setPhoneStatus("available");
 
       const formData = new FormData();
       formData.set(FIELD_FIRST_NAME, firstName.trim());
@@ -503,15 +557,19 @@ export function useAdminEditorForm(
 
       await submitFn(formData);
 
-      toast.success(
-        isEditMode ? TOAST_MESSAGES.UPDATED : TOAST_MESSAGES.CREATED
-      );
-
       if (isEditMode && adminId) {
         router.push(`/admin/admins/${adminId}`);
       } else {
         router.push("/admin/admins");
       }
+    };
+
+    try {
+      await toast.promise(runSubmit(), {
+        loading: TOAST_MESSAGES.SAVING,
+        success: () => (isEditMode ? TOAST_MESSAGES.UPDATED : TOAST_MESSAGES.CREATED),
+        error: (err) => (err instanceof Error ? err.message : TOAST_MESSAGES.ERROR),
+      });
     } catch (error) {
       console.error("Submit error:", error);
       const message = error instanceof Error ? error.message : TOAST_MESSAGES.ERROR;
@@ -529,8 +587,6 @@ export function useAdminEditorForm(
 
         return next;
       });
-
-      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -565,6 +621,10 @@ export function useAdminEditorForm(
     errors,
     adminData,
     isEditMode,
+    phoneStatus,
+    validationFailToken,
+    focusRequestToken,
+    focusFieldId,
 
     // Methods
     handleFieldChange,

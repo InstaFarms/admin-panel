@@ -6,6 +6,8 @@ import {
   type AdminDeleteImpact,
 } from "@/actions/adminActions";
 import { elevatedModalTheme } from "@/components/ConfirmModal";
+import { AnimatedModalContent } from "@/components/ui/AnimatedModalContent";
+import { staggerReveal } from "@/components/bookings/wizard/gsapHelpers";
 import { ADMIN_ADMINS_PATH } from "@/constants/routes";
 import { parseServerActionResult } from "@/utils/utils";
 import {
@@ -20,7 +22,7 @@ import {
   TextInput,
 } from "flowbite-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import { HiExclamationCircle } from "react-icons/hi";
 
@@ -41,6 +43,11 @@ export default function AdminDeleteImpactModal({ id, open, onClose }: Props) {
   const [impact, setImpact] = useState<AdminDeleteImpact | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
+  const impactRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (impact) staggerReveal(impactRef.current);
+  }, [impact]);
 
   useEffect(() => {
     if (!open) {
@@ -97,6 +104,7 @@ export default function AdminDeleteImpactModal({ id, open, onClose }: Props) {
     >
       <ModalHeader>Permanently delete admin</ModalHeader>
       <ModalBody>
+        <AnimatedModalContent>
         {loading ? (
           <div className="flex items-center justify-center gap-3 py-10 text-gray-500 dark:text-gray-300">
             <Spinner size="md" /> Checking what this admin is connected to…
@@ -106,7 +114,7 @@ export default function AdminDeleteImpactModal({ id, open, onClose }: Props) {
             {loadError}
           </div>
         ) : impact ? (
-          <div className="flex flex-col gap-5 text-sm text-gray-700 dark:text-gray-200">
+          <div ref={impactRef} className="flex flex-col gap-5 text-sm text-gray-700 dark:text-gray-200">
             <p>
               Permanently deleting{" "}
               <span className="font-semibold text-gray-900 dark:text-white">
@@ -202,6 +210,7 @@ export default function AdminDeleteImpactModal({ id, open, onClose }: Props) {
             )}
           </div>
         ) : null}
+        </AnimatedModalContent>
       </ModalBody>
       <ModalFooter>
         <Button color="gray" onClick={onClose} disabled={pending}>

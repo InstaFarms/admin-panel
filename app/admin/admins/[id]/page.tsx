@@ -12,6 +12,9 @@ import {
 import PageBreadcrumb from "@/components/PageBreadcrumb";
 import CopyValueButton from "./CopyValueButton";
 import AdminProfileInlineEditor from "./AdminProfileInlineEditor";
+import { AdminEditorFormProvider } from "./AdminEditorFormContext";
+import AdminEditorSubmitButton from "./AdminEditorSubmitButton";
+import AdminLiveSnapshotHero from "./AdminLiveSnapshotHero";
 import AdminStatusButton from "../AdminStatusButton";
 import PermissionSearchInput from "./PermissionSearchInput";
 import { getAdminById } from "@/actions/adminActions";
@@ -530,9 +533,8 @@ export default async function AdminDetailsPage({ params, searchParams }: ServerP
     { href: "#", label: isEditMode ? "Edit Admin Profile Details" : "Details" },
   ];
 
-  return (
-    <div className="flex w-full flex-col">
-      <Card className="w-full bg-white dark:bg-gray-800">
+  const cardInner = (
+    <>
         <div className="flex flex-col gap-5">
           <PageBreadcrumb items={breadcrumbs} />
 
@@ -553,14 +555,11 @@ export default async function AdminDetailsPage({ params, searchParams }: ServerP
                   <Link href={getTabHref(adminId, activeTab, false, permissionSearch)}>
                     <Button color="gray">Cancel</Button>
                   </Link>
-                  <Button
-                    type="submit"
-                    form={EDIT_FORM_ID}
-                    disabled={!canEditAdmins}
-                    className="border border-blue-500 bg-blue-600 text-white hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 disabled:cursor-not-allowed disabled:border-slate-400 disabled:bg-slate-400 dark:border-blue-400 dark:bg-blue-500 dark:hover:bg-blue-400 dark:focus:ring-blue-800"
-                  >
-                    Save Changes
-                  </Button>
+                  <AdminEditorSubmitButton
+                    formId={EDIT_FORM_ID}
+                    mode="edit"
+                    canEdit={canEditAdmins}
+                  />
                 </>
               ) : (
                 <>
@@ -616,12 +615,15 @@ export default async function AdminDetailsPage({ params, searchParams }: ServerP
 
         {isEditMode ? (
           activeTab === "basic" ? (
-            <AdminProfileInlineEditor
-              adminId={adminId}
-              canEdit={canEditAdmins}
-              canManageRole={canManageRole}
-              formId={EDIT_FORM_ID}
-            />
+            <div className="space-y-4">
+              <AdminLiveSnapshotHero mode="edit" />
+              <AdminProfileInlineEditor
+                adminId={adminId}
+                canEdit={canEditAdmins}
+                canManageRole={canManageRole}
+                formId={EDIT_FORM_ID}
+              />
+            </div>
           ) : null
         ) : null}
 
@@ -777,7 +779,7 @@ export default async function AdminDetailsPage({ params, searchParams }: ServerP
               <div className="overflow-x-auto p-4">
                 {permissionSearch && filteredPermissionRows.length !== permissionRows.length ? (
                   <p className="mb-3 text-sm text-gray-500 dark:text-slate-300">
-                    Showing {filteredPermissionRows.length} of {permissionRows.length} permissions for "{permissionSearch}".
+                    Showing {filteredPermissionRows.length} of {permissionRows.length} permissions for &ldquo;{permissionSearch}&rdquo;.
                   </p>
                 ) : null}
                 <PermissionsTable rows={filteredPermissionRows} />
@@ -785,6 +787,23 @@ export default async function AdminDetailsPage({ params, searchParams }: ServerP
             </div>
           </div>
         ) : null}
+    </>
+  );
+
+  return (
+    <div className="flex w-full flex-col">
+      <Card className="w-full bg-white dark:bg-gray-800">
+        {isEditMode ? (
+          <AdminEditorFormProvider
+            adminId={adminId}
+            initialAdmin={admin}
+            canManageRole={canManageRole}
+          >
+            {cardInner}
+          </AdminEditorFormProvider>
+        ) : (
+          cardInner
+        )}
       </Card>
     </div>
   );
