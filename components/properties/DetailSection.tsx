@@ -42,6 +42,8 @@ interface DetailSectionProps {
   setBaseGuestCount?: (value: number | null) => void;
   maxGuestCount?: number | null;
   setMaxGuestCount?: (value: number | null) => void;
+  platformStartDate?: string | null;
+  setPlatformStartDate?: (value: string | null) => void;
   allowOnlineBooking: boolean;
   setAllowOnlineBooking: (value: boolean) => void;
   allowCallBooking: boolean;
@@ -111,6 +113,8 @@ export default function DetailSection({
   setBaseGuestCount,
   maxGuestCount,
   setMaxGuestCount,
+  platformStartDate,
+  setPlatformStartDate,
   allowOnlineBooking,
   setAllowOnlineBooking,
   allowCallBooking,
@@ -240,6 +244,24 @@ export default function DetailSection({
                 value={propertyCodeName || ""}
                 onChange={(e) => setPropertyCodeName?.(e.target.value)}
               />
+            </LabelWrapper>
+          </DisabledFieldWrapper>
+          <DisabledFieldWrapper disabled={!!propertyFieldsDisabled} hint={propertyFieldsHint}>
+            <LabelWrapper label="Platform Start Date">
+              <TextInput
+                id="platformStartDate"
+                name="platformStartDate"
+                type="date"
+                value={platformStartDate || ""}
+                onChange={(e) =>
+                  setPlatformStartDate?.(e.target.value || null)
+                }
+              />
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                Date the property goes live on the platform. Milestone billing for
+                the first partial month is prorated from this date (leave blank for
+                a full month).
+              </p>
             </LabelWrapper>
           </DisabledFieldWrapper>
           <DisabledFieldWrapper disabled={!!brandFieldsDisabled} hint={brandFieldsHint}>
