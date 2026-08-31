@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Badge,
   Button,
@@ -76,8 +76,20 @@ function formatRoleLabel(role: AdminPanelRole) {
   return role.replaceAll("_", " ");
 }
 
+function roleStateDiffers(
+  current: RoleGrantState | undefined,
+  baseline: RoleGrantState | undefined,
+) {
+  if (!current) return false;
+  return Object.keys(current).some((permissionKey) => {
+    const key = permissionKey as AdminPermissionKey;
+    return !isGrantEqual(current[key], baseline?.[key]);
+  });
+}
+
 export default function RolePermissionsEditor({ initialMatrix }: RolePermissionsEditorProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const roles = useMemo(() => initialMatrix.roles, [initialMatrix.roles]);
   const [selectedRole, setSelectedRole] = useState<AdminPanelRole>(roles[0] ?? "OPS_TEAM");
   const [isSaving, setIsSaving] = useState(false);
@@ -108,21 +120,80 @@ export default function RolePermissionsEditor({ initialMatrix }: RolePermissions
     [baselineByRole, selectedRole]
   );
 
-  useEffect(() => {
-    const hasUnsavedChanges = Object.keys(selectedRoleState).some((permissionKey) => {
-      const key = permissionKey as AdminPermissionKey;
-      return !isGrantEqual(selectedRoleState[key], selectedBaselineState[key]);
-    });
+  // Unsaved edits are held per role in `grantsByRole`, so the navigation guard
+  // has to look at every role - not just the one currently on screen. Switching
+  // the role dropdown after editing must not "hide" the pending change from the
+  // guard.
+  const hasAnyUnsavedChanges = useMemo(
+    () => roles.some((role) => roleStateDiffers(grantsByRole[role], baselineByRole[role])),
+    [roles, grantsByRole, baselineByRole],
+  );
 
+  // Ref mirror so the DOM listeners below always read the latest value without
+  // re-binding on every keystroke.
+  const unsavedRef = useRef(hasAnyUnsavedChanges);
+  useEffect(() => {
+    unsavedRef.current = hasAnyUnsavedChanges;
+  }, [hasAnyUnsavedChanges]);
+
+  const confirmLeave = useCallback(
+    () =>
+      window.confirm(
+        "You have unsaved permission changes. Leave this page without saving them?",
+      ),
+    [],
+  );
+
+  // (1) Hard navigation (reload, tab close, address bar, external link).
+  useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!hasUnsavedChanges) return;
+      if (!unsavedRef.current) return;
       event.preventDefault();
       event.returnValue = "";
     };
-
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [selectedRoleState, selectedBaselineState]);
+  }, []);
+
+  // (2) In-app navigation (Next.js <Link> clicks - sidebar, breadcrumb, etc).
+  // `beforeunload` never fires for these, so intercept the click in the capture
+  // phase before the router handles it and ask first.
+  useEffect(() => {
+    const handleClick = (event: MouseEvent) => {
+      if (!unsavedRef.current) return;
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      const anchor = (event.target as HTMLElement | null)?.closest(
+        "a[href]",
+      ) as HTMLAnchorElement | null;
+      if (!anchor || anchor.target === "_blank") return;
+
+      const href = anchor.getAttribute("href");
+      // Only guard in-app navigations to a different route.
+      if (!href || !href.startsWith("/") || href.startsWith("//")) return;
+      if (href === pathname || href.split("?")[0] === pathname) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (confirmLeave()) {
+        unsavedRef.current = false; // don't re-prompt on the programmatic push
+        router.push(href);
+      }
+    };
+
+    document.addEventListener("click", handleClick, true);
+    return () => document.removeEventListener("click", handleClick, true);
+  }, [pathname, router, confirmLeave]);
 
   const permissionRows = useMemo<PermissionRow[]>(() => {
     return initialMatrix.permissions.map((permission) => {
@@ -324,7 +395,13 @@ export default function RolePermissionsEditor({ initialMatrix }: RolePermissions
                 Super Admin only
               </span>
               {isSuperAdminSelected ? <span className="rounded-full bg-sky-500/15 px-3 py-1 text-xs font-medium text-sky-700 dark:bg-sky-400/20 dark:text-sky-100">Read only</span> : null}
-              {hasUnsavedChanges ? <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-400/20 dark:text-amber-100">{dirtyCount} unsaved changes</span> : <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-100">All changes saved</span>}
+              {hasUnsavedChanges ? (
+                <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-400/20 dark:text-amber-100">{dirtyCount} unsaved changes</span>
+              ) : hasAnyUnsavedChanges ? (
+                <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-400/20 dark:text-amber-100">Unsaved changes on another role</span>
+              ) : (
+                <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-100">All changes saved</span>
+              )}
             </div>
             <div>
               <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
