@@ -43,28 +43,40 @@ const LAYER_VISIBLE = "opacity-100 pointer-events-auto";
 const LAYER_HIDDEN = "opacity-0 pointer-events-none";
 const LAYER_TRANSITION = "absolute inset-0 transition-opacity duration-200 ease-out";
 
+/**
+ * Filters the nav tree to what `allowedPermissionKeys` covers.
+ *
+ * A node's own `permissionKey` always wins; a node without one inherits the
+ * gate of its nearest keyed ancestor (`inheritedKey`) - so the keyless children
+ * of, say, the "Locations" group (key LOCATIONS) stay hidden for a role without
+ * LOCATIONS. A group is shown whenever at least one descendant survives the
+ * filter, even if the group's *own* key isn't granted: granting a role a leaf
+ * permission (e.g. SUPERVISORS) must reveal that item, not be swallowed by the
+ * parent group's key (ALL_USERS).
+ */
 function filterNavEntriesByPermissions(
   entries: SidebarNavEntry[],
-  allowedPermissionKeys: Set<string>
+  allowedPermissionKeys: Set<string>,
+  inheritedKey?: string
 ): SidebarNavEntry[] {
   const filtered: SidebarNavEntry[] = [];
   for (const entry of entries) {
     if (entry.type === "item") {
-      if (!entry.item.permissionKey || allowedPermissionKeys.has(entry.item.permissionKey)) {
+      const key = entry.item.permissionKey ?? inheritedKey;
+      if (!key || allowedPermissionKeys.has(key)) {
         filtered.push(entry);
       }
       continue;
     }
 
+    const groupKey = entry.group.permissionKey ?? inheritedKey;
     const childEntries = entry.group.items.map((item) =>
       "href" in item ? ({ type: "item", item } as SidebarNavEntry) : ({ type: "group", group: item } as SidebarNavEntry)
     );
-    const filteredChildren = filterNavEntriesByPermissions(childEntries, allowedPermissionKeys).map((item) =>
+    const filteredChildren = filterNavEntriesByPermissions(childEntries, allowedPermissionKeys, groupKey).map((item) =>
       item.type === "item" ? item.item : item.group
     );
-    const groupAllowed =
-      !entry.group.permissionKey || allowedPermissionKeys.has(entry.group.permissionKey);
-    if (groupAllowed && filteredChildren.length > 0) {
+    if (filteredChildren.length > 0) {
       filtered.push({
         type: "group",
         group: {
