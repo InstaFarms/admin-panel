@@ -1,8 +1,8 @@
 "use client";
 
-import { deactivateAdmin, reactivateAdmin, deleteAdmin } from "@/actions/adminActions";
+import { deactivateAdmin, reactivateAdmin } from "@/actions/adminActions";
 import ConfirmModal from "@/components/ConfirmModal";
-import { ADMIN_ADMINS_PATH } from "@/constants/routes";
+import AdminDeleteImpactModal from "./AdminDeleteImpactModal";
 import { parseServerActionResult } from "@/utils/utils";
 import { Button, Spinner } from "flowbite-react";
 import { useRouter } from "next/navigation";
@@ -34,27 +34,17 @@ export default function AdminStatusButton({
   const [dialog, setDialog] = useState<Dialog>(null);
   const router = useRouter();
 
-  const run = (kind: Exclude<Dialog, null>) => {
+  const run = (kind: "deactivate" | "reactivate") => {
     if (pending) return;
     startTransition(() => {
       const action =
-        kind === "deactivate"
-          ? deactivateAdmin(id)
-          : kind === "reactivate"
-            ? reactivateAdmin(id)
-            : deleteAdmin(id);
+        kind === "deactivate" ? deactivateAdmin(id) : reactivateAdmin(id);
 
       toast.promise(parseServerActionResult(action), {
-        loading:
-          kind === "delete"
-            ? "Deleting admin..."
-            : kind === "deactivate"
-              ? "Deactivating..."
-              : "Reactivating...",
+        loading: kind === "deactivate" ? "Deactivating..." : "Reactivating...",
         success: (message) => {
           setDialog(null);
-          if (kind === "delete") router.push(ADMIN_ADMINS_PATH);
-          else router.refresh();
+          router.refresh();
           return message;
         },
         error: (err) => {
@@ -136,16 +126,10 @@ export default function AdminStatusButton({
         acceptCallback={() => run("reactivate")}
         closeCallback={closeUnlessPending}
       />
-      <ConfirmModal
-        showModal={dialog === "delete"}
-        tone="danger"
-        title="Permanently delete this admin?"
-        confirmationText="This cannot be undone and will fail if other records still reference this admin. Deactivate instead if you only need to revoke access."
-        confirmLabel="Permanently delete"
-        loadingLabel="Deleting..."
-        loading={pending}
-        acceptCallback={() => run("delete")}
-        closeCallback={closeUnlessPending}
+      <AdminDeleteImpactModal
+        id={id}
+        open={dialog === "delete"}
+        onClose={() => setDialog(null)}
       />
     </>
   );

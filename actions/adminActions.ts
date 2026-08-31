@@ -352,6 +352,79 @@ export const deactivateAdmin = async (id: string): Promise<ServerActionResult> =
 export const reactivateAdmin = async (id: string): Promise<ServerActionResult> =>
   setAdminActive(id, "reactivate");
 
+export interface AdminDeleteImpactItem {
+  key: string;
+  label: string;
+  count: number;
+}
+
+export interface AdminDeleteImpact {
+  admin: {
+    id: string;
+    firstName: string;
+    lastName: string | null;
+    email: string;
+    panelRole: string | null;
+    isActive: boolean;
+  };
+  blocked: boolean;
+  guards: { isSelf: boolean; isLastSuperAdmin: boolean };
+  removed: AdminDeleteImpactItem[];
+  unlinked: AdminDeleteImpactItem[];
+  staleStampCount: number | null;
+}
+
+export const getAdminDeleteImpact = async (
+  id: string,
+): Promise<{ impact: AdminDeleteImpact } | { error: string }> => {
+  try {
+    const token = await getAuthToken();
+    const result = await apiGet<{ success?: boolean; data?: AdminDeleteImpact }>(
+      `/api/admins/${id}/delete-impact`,
+      { token }
+    );
+    if (!result.data) {
+      throw new Error("Could not load the delete impact for this admin.");
+    }
+    return { impact: result.data };
+  } catch (err: any) {
+    console.error("Error loading admin delete impact:", err);
+    captureError(err);
+    return {
+      error: err instanceof Error ? err.message : "Could not load the delete impact.",
+    };
+  }
+};
+
+export const purgeAdmin = async (
+  id: string,
+  confirmEmail: string,
+): Promise<ServerActionResult> => {
+  try {
+    const token = await getAuthToken();
+    if (!id) {
+      throw new Error("Invalid admin ID");
+    }
+
+    const result = await apiPost<{ success: boolean; message?: string }>(
+      `/api/admins/${id}/purge`,
+      { confirmEmail },
+      { token }
+    );
+
+    if (!result.success) {
+      throw new Error(result.message || "Failed to delete admin");
+    }
+
+    revalidatePath("/admin/admins");
+    return { success: "Admin permanently deleted." };
+  } catch (err: any) {
+    console.error("Error permanently deleting admin:", err);
+    captureError(err);
+    return { error: sanitizeDeleteAdminError(err) };
+  }
+};
+
 export const searchAdmin = async (
   formData: FormData
 ): Promise<ServerSearchResult<Admin[]>> => {

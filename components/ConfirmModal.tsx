@@ -11,7 +11,7 @@ import { AnimatedModalContent } from "@/components/ui/AnimatedModalContent";
  * with no edge. Override the panel to an elevated surface (crisp ring + strong
  * shadow) and darken the backdrop so the card clearly separates from the page.
  */
-const confirmModalTheme = {
+export const elevatedModalTheme = {
   root: {
     show: {
       on: "flex bg-gray-900/60 backdrop-blur-[2px] dark:bg-gray-950/80",
@@ -24,6 +24,8 @@ const confirmModalTheme = {
       "ring-1 ring-gray-200 dark:bg-gray-800 dark:ring-1 dark:ring-white/10",
   },
 } as const;
+
+const confirmModalTheme = elevatedModalTheme;
 
 interface ConfirmModalProps {
   showModal: boolean;
