@@ -8,7 +8,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check-types": "npm run typecheck",
     "start": "next start -p 3203",
-    "test": "vitest",
+    "test": "cross-env NODE_ENV=test vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "next lint",
     "format": "prettier . --write",

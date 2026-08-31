@@ -18,6 +18,7 @@ import {
   Textarea,
 } from "flowbite-react";
 import toast from "react-hot-toast";
+import { HiDownload } from "react-icons/hi";
 
 import {
   getPropertyOnboardingReviewQueue,
@@ -44,11 +45,44 @@ function dateText(value: string | null | undefined) {
   return value ? new Date(value).toLocaleString() : "—";
 }
 
-function JsonSnapshot({ value }: { value: unknown }) {
+function RequestSnapshotSummary({
+  title,
+  value,
+}: {
+  title: string;
+  value: unknown;
+}) {
+  const snapshot =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
   return (
-    <pre className="max-h-80 overflow-auto rounded-lg bg-gray-950 p-3 text-xs text-gray-100">
-      {JSON.stringify(value ?? {}, null, 2)}
-    </pre>
+    <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+      <Label className="mb-3 block">{title}</Label>
+      <dl className="space-y-2 text-sm">
+        <div className="flex flex-wrap justify-between gap-2">
+          <dt className="text-gray-500">Property name</dt>
+          <dd className="font-medium">
+            {String(snapshot.propertyName ?? "—")}
+          </dd>
+        </div>
+        <div className="flex flex-wrap justify-between gap-2">
+          <dt className="text-gray-500">Location</dt>
+          <dd className="font-medium">{String(snapshot.location ?? "—")}</dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
+
+function BaselineExcelDownload({ baseline }: { baseline: Submission }) {
+  if (!baseline.id) return null;
+  const href = `/admin/property-onboarding/submissions/baselines/${encodeURIComponent(String(baseline.id))}/export`;
+  return (
+    <Button as="a" href={href} download size="sm" color="light">
+      <HiDownload className="mr-2 h-4 w-4" />
+      Download Excel
+    </Button>
   );
 }
 
@@ -253,14 +287,14 @@ export default function PropertyOnboardingSubmissionsPage() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <div>
-              <Label className="mb-2 block">Original property snapshot</Label>
-              <JsonSnapshot value={selected.originalSnapshot} />
-            </div>
-            <div>
-              <Label className="mb-2 block">Supervisor proposal snapshot</Label>
-              <JsonSnapshot value={selected.proposalSnapshot} />
-            </div>
+            <RequestSnapshotSummary
+              title="Original property details"
+              value={selected.originalSnapshot}
+            />
+            <RequestSnapshotSummary
+              title="Supervisor proposal"
+              value={selected.proposalSnapshot}
+            />
           </div>
 
           <div>
@@ -287,15 +321,19 @@ export default function PropertyOnboardingSubmissionsPage() {
           </div>
 
           {!!selected.baselines?.length && (
-            <details>
+            <details className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
               <summary className="cursor-pointer font-medium">
-                Frozen baseline evidence ({selected.baselines.length})
+                Frozen onboarding baselines ({selected.baselines.length})
               </summary>
-              <div className="mt-3 space-y-3">
+              <p className="mt-3 text-sm text-gray-500">
+                Each export includes the captured property details, structure,
+                checklist responses, media links, and validation results.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-3">
                 {selected.baselines.map((baseline: Submission) => (
-                  <JsonSnapshot
+                  <BaselineExcelDownload
                     key={baseline.id}
-                    value={baseline.baselineSnapshot}
+                    baseline={baseline}
                   />
                 ))}
               </div>
@@ -372,19 +410,13 @@ export default function PropertyOnboardingSubmissionsPage() {
                   Version {baseline.versionNumber} · frozen{" "}
                   {dateText(baseline.frozenAt)}
                 </summary>
-                <div className="mt-3 grid gap-3 lg:grid-cols-2">
-                  <div>
-                    <Label className="mb-2 block">
-                      Property details captured at onboarding
-                    </Label>
-                    <JsonSnapshot value={baseline.sessionPropertySnapshot} />
-                  </div>
-                  <div>
-                    <Label className="mb-2 block">
-                      Immutable baseline snapshot
-                    </Label>
-                    <JsonSnapshot value={baseline.baselineSnapshot} />
-                  </div>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                  <p className="max-w-2xl text-sm text-gray-500">
+                    Download the complete, immutable onboarding record with
+                    property details, building structure, items, media links,
+                    and validation results.
+                  </p>
+                  <BaselineExcelDownload baseline={baseline} />
                 </div>
               </details>
             ))
