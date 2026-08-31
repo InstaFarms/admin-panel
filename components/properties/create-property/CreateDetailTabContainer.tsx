@@ -104,6 +104,8 @@ export default function CreateDetailTabContainer({
       setBaseGuestCount={(value) => onSectionChange(`${commercialBrandSlug}.detail.baseGuestCount`, value)}
       maxGuestCount={typeof sectionData.maxGuestCount === "number" ? sectionData.maxGuestCount : null}
       setMaxGuestCount={(value) => onSectionChange(`${commercialBrandSlug}.detail.maxGuestCount`, value)}
+      platformStartDate={(sectionData.platformStartDate as string | null) ?? null}
+      setPlatformStartDate={(value) => onSectionChange(`${commercialBrandSlug}.detail.platformStartDate`, value)}
       allowOnlineBooking={Boolean(commercialSectionData.allowOnlineBooking)}
       setAllowOnlineBooking={(value) =>
         onSectionChange(`${commercialBrandSlug}.commercial.allowOnlineBooking`, value)
