@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Badge,
@@ -22,6 +22,7 @@ import {
   type PermissionRiskLevel,
 } from "./permissionPresentation";
 import PageBreadcrumb from "@/components/PageBreadcrumb";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface RolePermissionsEditorProps {
   initialMatrix: AdminPermissionMatrix;
@@ -97,6 +98,10 @@ export default function RolePermissionsEditor({ initialMatrix }: RolePermissions
   const [isResetting, setIsResetting] = useState(false);
   const [search, setSearch] = useState("");
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  // Non-null while the "leave without saving?" prompt is open; holds the route
+  // the user tried to navigate to.
+  const [pendingNavHref, setPendingNavHref] = useState<string | null>(null);
 
   const [grantsByRole, setGrantsByRole] = useState<Record<AdminPanelRole, RoleGrantState>>(
     () => buildGrantMap(initialMatrix, roles)
@@ -135,14 +140,6 @@ export default function RolePermissionsEditor({ initialMatrix }: RolePermissions
   useEffect(() => {
     unsavedRef.current = hasAnyUnsavedChanges;
   }, [hasAnyUnsavedChanges]);
-
-  const confirmLeave = useCallback(
-    () =>
-      window.confirm(
-        "You have unsaved permission changes. Leave this page without saving them?",
-      ),
-    [],
-  );
 
   // (1) Hard navigation (reload, tab close, address bar, external link).
   useEffect(() => {
@@ -184,16 +181,20 @@ export default function RolePermissionsEditor({ initialMatrix }: RolePermissions
 
       event.preventDefault();
       event.stopPropagation();
-
-      if (confirmLeave()) {
-        unsavedRef.current = false; // don't re-prompt on the programmatic push
-        router.push(href);
-      }
+      setPendingNavHref(href);
     };
 
     document.addEventListener("click", handleClick, true);
     return () => document.removeEventListener("click", handleClick, true);
-  }, [pathname, router, confirmLeave]);
+  }, [pathname]);
+
+  const confirmLeave = () => {
+    const href = pendingNavHref;
+    setPendingNavHref(null);
+    if (!href) return;
+    unsavedRef.current = false; // don't re-prompt on the programmatic push
+    router.push(href);
+  };
 
   const permissionRows = useMemo<PermissionRow[]>(() => {
     return initialMatrix.permissions.map((permission) => {
@@ -340,15 +341,7 @@ export default function RolePermissionsEditor({ initialMatrix }: RolePermissions
     }
   };
 
-  const handleResetDefaults = async () => {
-    const shouldReset = window.confirm(
-      `Reset ${formatRoleLabel(selectedRole)} permissions to the default template? This will replace the current view and edit access for this role.`
-    );
-
-    if (!shouldReset) {
-      return;
-    }
-
+  const runResetDefaults = async () => {
     setIsResetting(true);
     try {
       const result = await resetRolePermissionsToDefaults(selectedRole);
@@ -379,6 +372,7 @@ export default function RolePermissionsEditor({ initialMatrix }: RolePermissions
       router.refresh();
     } finally {
       setIsResetting(false);
+      setResetModalOpen(false);
     }
   };
 
@@ -504,7 +498,7 @@ export default function RolePermissionsEditor({ initialMatrix }: RolePermissions
             </Button>
             <Button
               color="failure"
-              onClick={() => void handleResetDefaults()}
+              onClick={() => setResetModalOpen(true)}
               disabled={isSuperAdminSelected || isResetting || isSyncing || isSaving}
               className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-300 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900"
             >
@@ -625,6 +619,33 @@ export default function RolePermissionsEditor({ initialMatrix }: RolePermissions
           </section>
         ))}
       </div>
+
+      <ConfirmModal
+        showModal={resetModalOpen}
+        tone="danger"
+        title={`Reset ${formatRoleLabel(selectedRole)} permissions?`}
+        confirmationText={`This replaces the current view and edit access for ${formatRoleLabel(
+          selectedRole,
+        )} with the default template. Unsaved edits to this role are discarded.`}
+        confirmLabel="Reset to defaults"
+        loadingLabel="Resetting…"
+        loading={isResetting}
+        acceptCallback={() => void runResetDefaults()}
+        closeCallback={() => {
+          if (!isResetting) setResetModalOpen(false);
+        }}
+      />
+
+      <ConfirmModal
+        showModal={pendingNavHref !== null}
+        tone="warning"
+        title="Leave without saving?"
+        confirmationText="You have unsaved permission changes. They'll be lost if you leave this page."
+        confirmLabel="Leave"
+        cancelLabel="Stay"
+        acceptCallback={confirmLeave}
+        closeCallback={() => setPendingNavHref(null)}
+      />
     </div>
   );
 }
