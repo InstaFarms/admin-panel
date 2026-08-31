@@ -3,14 +3,12 @@ import Link from "next/link";
 import PageBreadcrumb from "@/components/PageBreadcrumb";
 import AdminProfileInlineEditor from "../[id]/AdminProfileInlineEditor";
 import { getBreadcrumbs } from "@/constants/admin";
-import { getMyAdminPermissions } from "@/actions/adminRolePermissionsActions";
 import { isAdmin } from "@/utils/admin-only";
 import AuthErrorHandler from "../../AuthErrorHandler";
 
 const CREATE_FORM_ID = "admin-create-inline-editor-form";
 
 export default async function CreateAdminPage() {
-  const permissions = await getMyAdminPermissions().catch(() => []);
   let err = "";
   const currentAdmin = await isAdmin().catch((error) => {
     if (error instanceof Error) {
@@ -31,9 +29,6 @@ export default async function CreateAdminPage() {
     );
   }
 
-  const canEditAdmins = permissions.some(
-    (permission) => permission.permissionKey === "ADMINS" && permission.canEdit
-  );
   const canManageRole = currentAdmin.panelRole === "SUPER_ADMIN";
 
   return (
@@ -61,17 +56,23 @@ export default async function CreateAdminPage() {
               <Button
                 type="submit"
                 form={CREATE_FORM_ID}
-                disabled={!canEditAdmins}
+                disabled={!canManageRole}
                 className="border border-blue-500 bg-blue-600 text-white hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 disabled:cursor-not-allowed disabled:border-slate-400 disabled:bg-slate-400 dark:border-blue-400 dark:bg-blue-500 dark:hover:bg-blue-400 dark:focus:ring-blue-800"
               >
                 Create Admin
               </Button>
             </div>
           </div>
+
+          {!canManageRole ? (
+            <p className="text-sm text-amber-600 dark:text-amber-400">
+              Only a Super Admin can create admin accounts.
+            </p>
+          ) : null}
         </div>
 
         <AdminProfileInlineEditor
-          canEdit={canEditAdmins}
+          canEdit={canManageRole}
           canManageRole={canManageRole}
           formId={CREATE_FORM_ID}
         />

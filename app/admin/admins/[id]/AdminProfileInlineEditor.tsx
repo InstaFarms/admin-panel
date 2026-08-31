@@ -104,7 +104,7 @@ export default function AdminProfileInlineEditor({
     updateAddressField,
     handleSubmit,
     applyWhatsappFromContact,
-  } = useAdminEditorForm(adminId);
+  } = useAdminEditorForm(adminId, { canManageRole });
 
   const onSubmit = async (formData: FormData) => {
     if (isEditMode && adminId) {

@@ -86,9 +86,13 @@ function mapAddressDetailsToFields(
   };
 }
 
-export function useAdminEditorForm(adminId?: string) {
+export function useAdminEditorForm(
+  adminId?: string,
+  options?: { canManageRole?: boolean }
+) {
   const router = useRouter();
-  
+  const canManageRole = options?.canManageRole ?? false;
+
   // Form fields
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -453,7 +457,15 @@ export function useAdminEditorForm(adminId?: string) {
       formData.set(FIELD_LAST_NAME, lastName.trim());
       formData.set(FIELD_EMAIL, email.trim());
       formData.set(FIELD_PHONE, normalizedPhoneNumber);
-      formData.set("panelRole", panelRole);
+      // Only send panelRole when the caller can actually change roles, or when a
+      // role-manager genuinely changed it. Sending it unconditionally makes the
+      // backend 403 every non-super save ("Only Super Admin can change ... role").
+      const roleChanged = isEditMode
+        ? adminData?.panelRole !== undefined && panelRole !== adminData.panelRole
+        : panelRole !== "OPS_TEAM";
+      if (canManageRole || roleChanged) {
+        formData.set("panelRole", panelRole);
+      }
       if (gender) {
         formData.set("gender", gender);
       }

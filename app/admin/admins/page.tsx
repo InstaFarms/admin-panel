@@ -1,11 +1,13 @@
-import { Button, Card, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from "flowbite-react";
+import { Badge, Button, Card, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from "flowbite-react";
 import Pagination from "@/components/Pagination";
 import Searchbar from "@/components/Searchbar";
 import { parseFilterParams, parseLimitOffset } from "@/utils/server-utils";
 import { ServerPageProps } from "@/utils/types";
-import { getAdmins } from "@/actions/adminActions";
+import { getAdmins, type AdminStatusFilter } from "@/actions/adminActions";
 import { getMyAdminPermissions } from "@/actions/adminRolePermissionsActions";
+import { isAdmin } from "@/utils/admin-only";
 import PageBreadcrumb from "@/components/PageBreadcrumb";
+import AdminStatusButton from "./AdminStatusButton";
 import { ADMIN_SEARCH_KEYS, type AdminSearchKey } from "@/constants/list";
 import { getBreadcrumbs} from "@/constants/admin";
 import { getEmptyListMessage } from "@/constants/ui";
@@ -14,25 +16,41 @@ import { HiPencil } from "react-icons/hi";
 
 export const dynamic = "force-dynamic";
 
+const STATUS_TABS = ["ALL", "ACTIVE", "DEACTIVATED"] as const;
+
+function getStatusFilter(value?: string | string[]): AdminStatusFilter {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw === "DEACTIVATED" || raw === "ALL" ? raw : "ACTIVE";
+}
+
+function getStatusHref(status: AdminStatusFilter) {
+  return status === "ACTIVE" ? "/admin/admins" : `/admin/admins?status=${status}`;
+}
+
 export default async function AdminsPage({ searchParams }: ServerPageProps) {
   const params = await searchParams;
   const { limit, offset } = parseLimitOffset(params);
   const filterParams = parseFilterParams(params);
   const pageNumber = Math.floor(offset / limit) + 1;
+  const status = getStatusFilter(params.status);
 
   const result = await getAdmins(
     pageNumber,
     limit,
     filterParams?.searchValue ?? undefined,
     filterParams?.searchKey as AdminSearchKey | undefined,
+    status,
   );
 
   const data = "success" in result ? result.success : [];
+  const total = "success" in result ? result.total : 0;
   const listError = "error" in result ? result.error : null;
   const permissions = await getMyAdminPermissions().catch(() => []);
   const canEditAdmins = permissions.some(
     (permission) => permission.permissionKey === "ADMINS" && permission.canEdit
   );
+  const currentAdmin = await isAdmin().catch(() => null);
+  const canManageRole = currentAdmin?.panelRole === "SUPER_ADMIN";
   const hasSearch = Boolean(filterParams?.searchValue);
   const emptyMessage = listError || getEmptyListMessage("admins", hasSearch);
 
@@ -46,16 +64,29 @@ export default async function AdminsPage({ searchParams }: ServerPageProps) {
               Admins
             </h5>
           </div>
-          <div className="flex w-full flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between">
-            <PageBreadcrumb items={getBreadcrumbs("list")} className="w-full shrink-0 sm:w-auto" />
-            <div className="flex w-full shrink-0 flex-row items-center justify-end gap-3 sm:w-auto sm:justify-end">
-              <div className="min-w-0 flex-1 sm:w-[460px]">
+          <div className="flex w-full flex-col gap-3 pb-3 lg:flex-row lg:items-center lg:justify-between">
+            <PageBreadcrumb items={getBreadcrumbs("list")} className="w-full shrink-0 lg:w-auto" />
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto">
+              <div className="flex gap-2">
+                {STATUS_TABS.map((item) => (
+                  <Link key={item} href={getStatusHref(item)}>
+                    <Button
+                      size="xs"
+                      color={status === item ? "blue" : "light"}
+                      className="transition-colors"
+                    >
+                      {item === "ALL" ? "All" : item === "ACTIVE" ? "Active" : "Deactivated"}
+                    </Button>
+                  </Link>
+                ))}
+              </div>
+              <div className="min-w-0 flex-1 sm:w-[420px]">
                 <Searchbar
                   searchKeys={[...ADMIN_SEARCH_KEYS]}
                   defaultSearchKey={filterParams?.searchKey ?? "Name"}
                 />
               </div>
-              {canEditAdmins ? (
+              {canManageRole ? (
                 <Link href="/admin/admins/create" className="cursor-pointer shrink-0">
                   <Button>New</Button>
                 </Link>
@@ -90,6 +121,9 @@ export default async function AdminsPage({ searchParams }: ServerPageProps) {
                   </TableHeadCell>
                   <TableHeadCell className="whitespace-nowrap">
                     Panel Role
+                  </TableHeadCell>
+                  <TableHeadCell className="whitespace-nowrap">
+                    Status
                   </TableHeadCell>
                   <TableHeadCell className="whitespace-nowrap">
                     Actions
@@ -127,6 +161,14 @@ export default async function AdminsPage({ searchParams }: ServerPageProps) {
                         {admin.panelRole ? admin.panelRole.replaceAll("_", " ") : "-"}
                       </TableCell>
                       <TableCell>
+                        <Badge
+                          color={admin.isActive === false ? "gray" : "success"}
+                          className="w-fit"
+                        >
+                          {admin.isActive === false ? "DEACTIVATED" : "ACTIVE"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         <div className="flex flex-row items-center gap-3">
                           {canEditAdmins ? (
                             <Link
@@ -139,6 +181,13 @@ export default async function AdminsPage({ searchParams }: ServerPageProps) {
                               </div>
                             </Link>
                           ) : null}
+                          {canManageRole ? (
+                            <AdminStatusButton
+                              id={admin.id}
+                              isActive={admin.isActive !== false}
+                              compact
+                            />
+                          ) : null}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -146,7 +195,7 @@ export default async function AdminsPage({ searchParams }: ServerPageProps) {
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="py-4 text-center text-gray-500 dark:text-gray-400"
                     >
                       {emptyMessage}
@@ -157,7 +206,12 @@ export default async function AdminsPage({ searchParams }: ServerPageProps) {
             </Table>
           </div>
         </div>
-        <Pagination />
+        <div className="flex flex-col gap-2 pt-2 text-sm text-gray-500 dark:text-gray-400">
+          <span>
+            Showing {data.length} of {total} admins.
+          </span>
+          <Pagination totalItems={total} />
+        </div>
       </Card>
     </div>
   );

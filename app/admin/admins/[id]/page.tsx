@@ -12,7 +12,7 @@ import {
 import PageBreadcrumb from "@/components/PageBreadcrumb";
 import CopyValueButton from "./CopyValueButton";
 import AdminProfileInlineEditor from "./AdminProfileInlineEditor";
-import DeleteAdminButton from "../DeleteAdminButton";
+import AdminStatusButton from "../AdminStatusButton";
 import PermissionSearchInput from "./PermissionSearchInput";
 import { getAdminById } from "@/actions/adminActions";
 import { getMyAdminPermissions, getRolePermissionMatrix } from "@/actions/adminRolePermissionsActions";
@@ -541,7 +541,9 @@ export default async function AdminDetailsPage({ params, searchParams }: ServerP
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-5xl font-bold tracking-tight text-gray-900 dark:text-white">{fullName(admin)}</h1>
                 <Badge color="info">{formatRole(admin.panelRole)}</Badge>
-                <Badge color="success">ACTIVE</Badge>
+                <Badge color={admin.isActive === false ? "gray" : "success"}>
+                  {admin.isActive === false ? "DEACTIVATED" : "ACTIVE"}
+                </Badge>
               </div>
             </div>
 
@@ -572,7 +574,9 @@ export default async function AdminDetailsPage({ params, searchParams }: ServerP
                       </Button>
                     </Link>
                   ) : null}
-                  {canEditAdmins ? <DeleteAdminButton id={adminId} label="Remove Admin" /> : null}
+                  {canManageRole ? (
+                    <AdminStatusButton id={adminId} isActive={admin.isActive !== false} />
+                  ) : null}
                 </>
               )}
             </div>
@@ -653,7 +657,10 @@ export default async function AdminDetailsPage({ params, searchParams }: ServerP
                       Primary contact: <span className="font-medium text-gray-900 dark:text-white">{admin.phoneNumber || "Not added"}</span>
                     </span>
                     <span>
-                      Status: <span className="font-medium text-gray-900 dark:text-white">Active</span>
+                      Status:{" "}
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {admin.isActive === false ? "Deactivated" : "Active"}
+                      </span>
                     </span>
                   </div>
                 </div>
