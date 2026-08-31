@@ -13,22 +13,25 @@ import { HiBan, HiCheckCircle, HiTrash } from "react-icons/hi";
 type Dialog = "deactivate" | "reactivate" | "delete" | null;
 
 /**
- * Replaces the old hard-delete "Remove Admin" button. Deactivate is the normal
- * "revoke access" action (keeps the row + history); Permanently delete is a
- * Super-Admin escape hatch for genuine junk rows. Callers must already gate
- * rendering on SUPER_ADMIN.
+ * Admin status actions. Deactivate is the normal "revoke access" action (keeps
+ * the row + history); Permanently delete opens the impact screen. Callers must
+ * already gate rendering on SUPER_ADMIN.
  *
- * `compact` = icon-only buttons for a table row; otherwise full labelled buttons
- * for the detail-page header.
+ * - `compact`         → icon-only buttons for a table row.
+ * - `reactivateOnly`  → render ONLY the Reactivate action (used in the
+ *   Deactivated list so a row can be re-enabled without leaving the page). The
+ *   full set of actions lives on the admin detail page.
  */
 export default function AdminStatusButton({
   id,
   isActive,
   compact = false,
+  reactivateOnly = false,
 }: {
   id: string;
   isActive: boolean;
   compact?: boolean;
+  reactivateOnly?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -59,13 +62,45 @@ export default function AdminStatusButton({
     if (!pending) setDialog(null);
   };
 
+  const size = compact ? "xs" : "sm";
+
+  if (reactivateOnly) {
+    return (
+      <>
+        <Button
+          color="green"
+          size={size}
+          disabled={pending || isActive}
+          onClick={() => setDialog("reactivate")}
+          title="Reactivate admin"
+        >
+          <span className="inline-flex items-center gap-2">
+            {pending ? <Spinner size="sm" light /> : <HiCheckCircle size={16} />}
+            {compact ? null : "Reactivate"}
+          </span>
+        </Button>
+        <ConfirmModal
+          showModal={dialog === "reactivate"}
+          tone="primary"
+          title="Reactivate this admin?"
+          confirmationText="They will be able to log in again with their existing panel role and permissions."
+          confirmLabel="Reactivate"
+          loadingLabel="Reactivating..."
+          loading={pending}
+          acceptCallback={() => run("reactivate")}
+          closeCallback={closeUnlessPending}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <div className="flex flex-row items-center gap-2">
         {isActive ? (
           <Button
             color="yellow"
-            size={compact ? "xs" : "sm"}
+            size={size}
             disabled={pending}
             onClick={() => setDialog("deactivate")}
             title="Deactivate admin"
@@ -78,7 +113,7 @@ export default function AdminStatusButton({
         ) : (
           <Button
             color="green"
-            size={compact ? "xs" : "sm"}
+            size={size}
             disabled={pending}
             onClick={() => setDialog("reactivate")}
             title="Reactivate admin"
@@ -92,7 +127,7 @@ export default function AdminStatusButton({
 
         <Button
           color="red"
-          size={compact ? "xs" : "sm"}
+          size={size}
           disabled={pending}
           onClick={() => setDialog("delete")}
           title="Permanently delete admin"

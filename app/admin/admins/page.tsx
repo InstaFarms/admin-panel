@@ -181,11 +181,15 @@ export default async function AdminsPage({ searchParams }: ServerPageProps) {
                               </div>
                             </Link>
                           ) : null}
-                          {canManageRole ? (
+                          {/* Deactivate / Permanently delete live on the detail
+                              page. Only offer Reactivate here, so a deactivated
+                              admin can be re-enabled straight from the list. */}
+                          {canManageRole && admin.isActive === false ? (
                             <AdminStatusButton
                               id={admin.id}
-                              isActive={admin.isActive !== false}
+                              isActive={false}
                               compact
+                              reactivateOnly
                             />
                           ) : null}
                         </div>
