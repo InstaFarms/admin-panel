@@ -7,6 +7,7 @@ import { PHONE_LENGTH } from "@/constants/auth";
 import { FIELD_EMAIL, FIELD_FIRST_NAME, FIELD_LAST_NAME, FIELD_PHONE } from "@/constants/admin";
 import { useAdminEditorForm } from "@/hooks/useAdminEditorForm";
 import { parseServerActionResult } from "@/utils/utils";
+import type { Gender } from "@/utils/types";
 
 interface AdminProfileInlineEditorProps {
   adminId?: string;
@@ -65,6 +66,57 @@ function FieldBlock({
   );
 }
 
+const GENDER_CHOICES: { value: Gender; label: string; symbol: string }[] = [
+  { value: "Male", label: "Male", symbol: "♂" },
+  { value: "Female", label: "Female", symbol: "♀" },
+  { value: "Other", label: "Other", symbol: "⚥" },
+];
+
+function GenderPicker({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: Gender | "";
+  onChange: (next: Gender | "") => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Gender"
+      className="flex w-full gap-1.5 rounded-xl border border-slate-300 bg-white p-1.5 shadow-sm dark:border-slate-600 dark:bg-slate-800/80"
+    >
+      {GENDER_CHOICES.map((choice) => {
+        const selected = value === choice.value;
+        return (
+          <button
+            key={choice.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            disabled={disabled}
+            onClick={() => onChange(selected ? "" : choice.value)}
+            className={[
+              "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+              selected
+                ? "bg-blue-600 text-white shadow-sm dark:bg-blue-500"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700/70 dark:hover:text-white",
+            ].join(" ")}
+          >
+            <span aria-hidden className="text-base leading-none">
+              {choice.symbol}
+            </span>
+            {choice.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 const INPUT_CLASS =
   "[&_input]:rounded-xl [&_input]:border-slate-300 [&_input]:bg-white [&_input]:text-gray-900 [&_input]:placeholder-slate-400 [&_input]:shadow-sm dark:[&_input]:border-slate-600 dark:[&_input]:bg-slate-800/80 dark:[&_input]:text-white dark:[&_input]:placeholder-slate-500";
 
@@ -96,7 +148,6 @@ export default function AdminProfileInlineEditor({
     setAlternateContact,
     addressFields,
     panelRoleOptions,
-    genderOptions,
     fetchLoading,
     errors,
     isEditMode,
@@ -295,22 +346,12 @@ export default function AdminProfileInlineEditor({
                 </Select>
               </FieldBlock>
 
-              <FieldBlock label="Gender">
-                <Select
-                  id="gender"
-                  name="gender"
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value as typeof gender)}
-                  disabled={!canEdit}
-                  className={SELECT_CLASS}
-                >
-                  <option value="">Select gender</option>
-                  {genderOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </Select>
+              <FieldBlock
+                label="Gender"
+                hint="Optional — tap the selected option again to clear it."
+              >
+                <GenderPicker value={gender} onChange={setGender} disabled={!canEdit} />
+                <input type="hidden" name="gender" value={gender} />
               </FieldBlock>
             </div>
           </SectionCard>
