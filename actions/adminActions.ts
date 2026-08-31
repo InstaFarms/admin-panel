@@ -279,9 +279,26 @@ export const deleteAdmin = async (id: string): Promise<ServerActionResult> => {
   } catch (err: any) {
     console.error("Error deleting admin:", err);
     captureError(err);
-    return { error: err.message || "Failed to delete admin" };
+    return { error: sanitizeDeleteAdminError(err) };
   }
 };
+
+/**
+ * The backend maps known delete failures to friendly text, but guard here too so
+ * a raw drizzle/Postgres error ("Failed query: delete from \"admins\" …", bound
+ * params and all) can never land in a toast if something slips through.
+ */
+function sanitizeDeleteAdminError(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err ?? "");
+  const looksLikeRawDbError =
+    /^Failed query:/i.test(message) ||
+    /\bviolates\b|\bconstraint\b|syntax error|does not exist/i.test(message);
+
+  if (!message || looksLikeRawDbError) {
+    return "Could not delete this admin. Please try again or contact support.";
+  }
+  return message;
+}
 
 export const searchAdmin = async (
   formData: FormData
