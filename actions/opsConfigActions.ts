@@ -50,7 +50,6 @@ type OpsEnvelope<T> = { success: boolean; data: T; message?: string };
 
 export type OpsConfigStatus = "DRAFT" | "PUBLISHED" | "RETIRED";
 export type OpsTriggerType = "TIME" | "EVENT";
-export type { OperationCategory };
 
 export interface OpsOrganization {
   id: string;

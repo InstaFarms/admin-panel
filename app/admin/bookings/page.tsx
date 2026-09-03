@@ -116,9 +116,20 @@ export default async function BookingsPage({ searchParams }: ServerPageProps) {
   const listError = result.error ?? null;
 
   const visibleData = data.filter((booking: any) => {
-    const source = String(booking.bookingSource || "").toLowerCase();
-    if (selectedBrandId === "mago") return source.includes("mago");
-    if (selectedBrandId === "instafarms") return !source.includes("mago");
+    if (selectedBrandId === "all") return true;
+    // Brand membership is decided by the same signal the [MS]/[IF] tag next to
+    // each row uses (brand.name, falling back to property.isPresentOnMago) --
+    // NOT booking.bookingSource, which is a channel/platform string
+    // ("ADMIN_PANEL" for virtually every offline booking) and is unrelated to
+    // brand. Filtering on bookingSource.includes("mago") made "Instafarms"
+    // resolve to "not mago" and let every offline Mago booking leak through,
+    // since their bookingSource never contains the word "mago" either.
+    const brandName = String(booking.brand?.name || "").toLowerCase();
+    const isMago = brandName
+      ? brandName.includes("mago")
+      : booking.property?.isPresentOnMago === true;
+    if (selectedBrandId === "mago") return isMago;
+    if (selectedBrandId === "instafarms") return !isMago;
     return true;
   });
 
