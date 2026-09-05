@@ -33,8 +33,19 @@ interface EnquiryData {
   } | null;
 }
 
-export default function ViewEnquiryButton({ enquiry }: { enquiry: EnquiryData }) {
-  const [showModal, setShowModal] = useState<boolean>(false);
+// `autoOpen` lets the notification emails/WhatsApp link straight to one enquiry
+// (?enquiryId=<id>). The list is newest-first and unfiltered, so a freshly
+// submitted enquiry is always on page 1 — which is the only case these links are
+// sent for.
+// ponytail: page-1 only; add a lookup-then-redirect if older enquiries ever need deep links.
+export default function ViewEnquiryButton({
+  enquiry,
+  autoOpen = false,
+}: {
+  enquiry: EnquiryData;
+  autoOpen?: boolean;
+}) {
+  const [showModal, setShowModal] = useState<boolean>(autoOpen);
   const [status, setStatus] = useState(enquiry.status);
   const [responseMessage, setResponseMessage] = useState(enquiry.responseMessage || "");
   const [loading, startTransition] = useTransition();

@@ -105,7 +105,10 @@ export default async function Page({ searchParams }: ServerPageProps) {
                       <TableCell>{formatAdminDate(enquiry.createdAt, "-")}</TableCell>
                       <TableCell>
                         <div className="flex flex-row items-center gap-3">
-                          <ViewEnquiryButton enquiry={enquiry} />
+                          <ViewEnquiryButton
+                            enquiry={enquiry}
+                            autoOpen={enquiry.id === params.enquiryId}
+                          />
                           <DeleteEnquiryButton id={enquiry.id} />
                         </div>
                       </TableCell>
