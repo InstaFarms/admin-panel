@@ -5,6 +5,66 @@ import { cookies } from "next/headers";
 import { apiPost } from "@/utils/api-utils";
 import { captureError } from "@/lib/sentry";
 
+type AuthActionError = { success: false; message: string; isAdminError?: boolean };
+
+/**
+ * fetchAPI throws ApiRequestError on any non-2xx response, so a genuine auth
+ * rejection (the API answers 403 for "no admin account found") never reaches the
+ * `!response.success` branches below — it lands in `catch`. Routing both paths
+ * through these classifiers is what actually gets the friendly copy and the
+ * `isAdminError` flag to the UI; before this, `catch` returned the raw backend
+ * string with no flag, so the login page's inline field error and its longer
+ * 6s toast never fired.
+ */
+const isNetworkError = (error: unknown) =>
+  error instanceof TypeError && error.message.includes("fetch");
+
+const NETWORK_ERROR: AuthActionError = {
+  success: false,
+  message: "Unable to connect to server. Please check your internet connection.",
+};
+
+const classifySendOtpError = (rawMessage: string): AuthActionError => {
+  const msg = rawMessage.toLowerCase();
+
+  if (msg.includes("not found") || msg.includes("not an admin") || msg.includes("no admin")) {
+    return {
+      success: false,
+      message: "This phone number is not registered as an admin. Please contact your administrator.",
+      isAdminError: true,
+    };
+  }
+
+  return { success: false, message: rawMessage };
+};
+
+const classifyVerifyOtpError = (rawMessage: string, isAdmin?: boolean): AuthActionError => {
+  const msg = rawMessage.toLowerCase();
+
+  if (
+    isAdmin === false ||
+    msg.includes("not an admin") ||
+    msg.includes("not authorized") ||
+    msg.includes("no admin access")
+  ) {
+    return {
+      success: false,
+      message: "Access Denied: This account does not have admin privileges.",
+      isAdminError: true,
+    };
+  }
+
+  if (msg.includes("invalid") || msg.includes("incorrect") || msg.includes("wrong")) {
+    return { success: false, message: "Invalid OTP. Please check and try again." };
+  }
+
+  if (msg.includes("expired")) {
+    return { success: false, message: "OTP has expired. Please request a new one." };
+  }
+
+  return { success: false, message: rawMessage };
+};
+
 export const revalidateAfterLogin = async () => {
   revalidatePath("/admin", "layout");
   revalidatePath("/", "layout");
@@ -20,27 +80,12 @@ export const sendOTP = async (phoneNumber: string) => {
     console.log(sendOtpMsg);
 
     if (!response.success) {
-      const errorMsg = response.error || response.message || 'Failed to send OTP';
-      
-      // Check for admin not found error
-      if (errorMsg.toLowerCase().includes('not found') || 
-          errorMsg.toLowerCase().includes('not an admin') ||
-          errorMsg.toLowerCase().includes('no admin')) {
-        return {
-          success: false,
-          message: 'This phone number is not registered as an admin. Please contact your administrator.',
-          isAdminError: true,
-        };
-      }
-      
-      return {
-        success: false,
-        message: errorMsg,
-      };
+      return classifySendOtpError(response.error || response.message || 'Failed to send OTP');
     }
 
     return {
       success: true,
+      isAdminError: false,
       message: response.message || 'OTP sent successfully',
     };
   } catch (error) {
@@ -48,18 +93,11 @@ export const sendOTP = async (phoneNumber: string) => {
     console.error(`[Auth] sendOTP → error: ${errMsg}`);
     captureError(error);
 
-    // Check if it's a network error
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      return {
-        success: false,
-        message: 'Unable to connect to server. Please check your internet connection.',
-      };
-    }
-    
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Failed to send OTP. Please try again.',
-    };
+    if (isNetworkError(error)) return NETWORK_ERROR;
+
+    return classifySendOtpError(
+      error instanceof Error ? error.message : 'Failed to send OTP. Please try again.'
+    );
   }
 };
 
@@ -82,42 +120,10 @@ export const verifyOTPAndLogin = async (phoneNumber: string, otp: string) => {
     console.log(verifyMsg);
 
     if (!response.success) {
-      const errorMsg = response.error || response.message || 'Invalid OTP or not authorized';
-      
-      // Detect non-admin user errors
-      if (response.isAdmin === false || 
-          errorMsg.toLowerCase().includes('not an admin') || 
-          errorMsg.toLowerCase().includes('not authorized') ||
-          errorMsg.toLowerCase().includes('no admin access')) {
-        return {
-          success: false,
-          message: 'Access Denied: This account does not have admin privileges.',
-          isAdminError: true,
-        };
-      }
-      
-      // Invalid OTP
-      if (errorMsg.toLowerCase().includes('invalid') || 
-          errorMsg.toLowerCase().includes('incorrect') ||
-          errorMsg.toLowerCase().includes('wrong')) {
-        return {
-          success: false,
-          message: 'Invalid OTP. Please check and try again.',
-        };
-      }
-      
-      // OTP expired
-      if (errorMsg.toLowerCase().includes('expired')) {
-        return {
-          success: false,
-          message: 'OTP has expired. Please request a new one.',
-        };
-      }
-      
-      return {
-        success: false,
-        message: errorMsg,
-      };
+      return classifyVerifyOtpError(
+        response.error || response.message || 'Invalid OTP or not authorized',
+        response.isAdmin
+      );
     }
 
     const result = response;
@@ -173,6 +179,7 @@ export const verifyOTPAndLogin = async (phoneNumber: string, otp: string) => {
 
     return {
       success: true,
+      isAdminError: false,
       accessToken: result.accessToken,
       documentId: result.documentId,
       admin: result.data?.admin,
@@ -184,17 +191,11 @@ export const verifyOTPAndLogin = async (phoneNumber: string, otp: string) => {
     console.error(`[Auth] verifyOTP → unexpected error: ${errMsg}`);
     captureError(error);
 
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      return {
-        success: false,
-        message: 'Unable to connect to server. Please check your internet connection.',
-      };
-    }
-    
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Failed to verify OTP. Please try again.',
-    };
+    if (isNetworkError(error)) return NETWORK_ERROR;
+
+    return classifyVerifyOtpError(
+      error instanceof Error ? error.message : 'Failed to verify OTP. Please try again.'
+    );
   }
 };
 
