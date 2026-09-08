@@ -77,8 +77,9 @@ export interface Admin {
   adminUpdatedBy?: string | null;
   adminCreatedByName?: string | null;
   adminUpdatedByName?: string | null;
+  /** false = deactivated (soft-deleted): cannot log in, hidden from the default list. */
+  isActive?: boolean;
   role?: string; // Add this
-  status?: string; // Add this
   department?: string; // Add this
   notes?: string; // Add this
   createdAt?: string;

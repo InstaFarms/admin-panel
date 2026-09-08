@@ -4,6 +4,30 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Chrome/Safari autofill paints its own pale-blue background over inputs,
+   which breaks the dark theme once name/email/phone fields get filled in.
+   Keep the field's real (theme-aware) background and just fix the text colour. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: rgb(17 24 39);
+  caret-color: rgb(17 24 39);
+  transition: background-color 600000s 0s, color 600000s 0s;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark input:-webkit-autofill:active,
+.dark textarea:-webkit-autofill,
+.dark select:-webkit-autofill {
+  -webkit-text-fill-color: #ffffff;
+  caret-color: #ffffff;
+}
+
 @keyframes jarvisBar {
   0%,
   100% {

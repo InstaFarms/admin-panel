@@ -1,178 +1,287 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { HiPencil, HiTrash, HiOutlineExclamationCircle } from "react-icons/hi";
+import { useState, useEffect, useMemo } from "react";
+import { HiPencil, HiTrash } from "react-icons/hi";
 import toast from "react-hot-toast";
+import Link from "next/link";
+import {
+  Badge,
+  Button,
+  Card,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeadCell,
+  TableRow,
+} from "flowbite-react";
 
-import { Table, TableHead, TableRow, TableHeadCell, TableBody, TableCell, Dropdown, DropdownItem, Button, Badge, Modal } from "flowbite-react";
-
-import { JarvisLoader } from "@/components/JarvisLogo";
+import PageBreadcrumb from "@/components/PageBreadcrumb";
+import ConfirmModal from "@/components/ConfirmModal";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { getSupervisors, deleteSupervisor } from "@/actions/supervisorActions";
 
-import Link from "next/link";
+interface Supervisor {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  isActive: boolean;
+}
+
+const STATUS_TABS = ["ALL", "ACTIVE", "INACTIVE"] as const;
+type StatusTab = (typeof STATUS_TABS)[number];
+
+const BREADCRUMBS = [
+  { href: "/", label: "Home" },
+  { href: "/admin", label: "Admin" },
+  { href: "#", label: "Supervisors" },
+];
 
 export default function SupervisorsTable() {
-    const [supervisors, setSupervisors] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [filterStatus, setFilterStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [deletingId, setDeletingId] = useState<string | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
+  const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+  const [status, setStatus] = useState<StatusTab>("ACTIVE");
+  const [search, setSearch] = useState("");
 
-    useEffect(() => {
-        loadSupervisors();
-    }, []);
+  const [deleting, setDeleting] = useState<Supervisor | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-    const loadSupervisors = async () => {
-        setLoading(true);
-        try {
-            const res = await getSupervisors();
-            if (res.success && res.data) {
-                setSupervisors(res.data);
-            } else {
-                toast.error(res.message || "Failed to load supervisors");
-            }
-        } catch (error) {
-            toast.error("An error occurred");
-        } finally {
-            setLoading(false);
-        }
-    };
+  useEffect(() => {
+    loadSupervisors();
+  }, []);
 
-    const handleDeleteClick = (id: string) => {
-        setDeletingId(id);
-        setShowDeleteModal(true);
-    };
+  const loadSupervisors = async () => {
+    setLoading(true);
+    try {
+      const res = await getSupervisors();
+      if (res.success && res.data) {
+        setSupervisors(res.data);
+        setListError(null);
+      } else {
+        setListError(res.message || "Failed to load supervisors");
+      }
+    } catch {
+      setListError("An error occurred while loading supervisors");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const confirmDelete = async () => {
-        if (!deletingId) return;
-        setIsDeleting(true);
-        try {
-            const res = await deleteSupervisor(deletingId);
-            if (res.success) {
-                toast.success("Supervisor deleted successfully");
-                await loadSupervisors();
-            } else {
-                toast.error(res.message || "Failed to delete supervisor");
-            }
-        } catch (error) {
-            toast.error("An error occurred while deleting");
-        } finally {
-            setIsDeleting(false);
-            setShowDeleteModal(false);
-            setDeletingId(null);
-        }
-    };
+  const confirmDelete = async () => {
+    if (!deleting) return;
+    setIsDeleting(true);
+    try {
+      const res = await deleteSupervisor(deleting.id);
+      if (res.success) {
+        toast.success("Supervisor deleted successfully");
+        await loadSupervisors();
+      } else {
+        toast.error(res.message || "Failed to delete supervisor");
+      }
+    } catch {
+      toast.error("An error occurred while deleting");
+    } finally {
+      setIsDeleting(false);
+      setDeleting(null);
+    }
+  };
 
-    const filteredSupervisors = supervisors.filter((s) => {
-        if (filterStatus === "ACTIVE") return s.isActive;
-        if (filterStatus === "INACTIVE") return !s.isActive;
-        return true;
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return supervisors.filter((s) => {
+      if (status === "ACTIVE" && !s.isActive) return false;
+      if (status === "INACTIVE" && s.isActive) return false;
+      if (!q) return true;
+      return [s.name, s.email, s.phone].some((v) =>
+        (v ?? "").toLowerCase().includes(q),
+      );
     });
+  }, [supervisors, status, search]);
 
-    return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-4">
-                    <Dropdown label={`Status: ${filterStatus}`} inline>
-                        <DropdownItem onClick={() => setFilterStatus("ACTIVE")}>Active</DropdownItem>
-                        <DropdownItem onClick={() => setFilterStatus("INACTIVE")}>Inactive</DropdownItem>
-                    </Dropdown>
-                </div>
-                <Link href="/admin/supervisors/create">
-                    <Button>
-                        Add Supervisor
-                    </Button>
-                </Link>
+  const emptyMessage = listError
+    ? listError
+    : search.trim()
+      ? "No supervisors match your search."
+      : "No supervisors found.";
+
+  return (
+    <div className="flex w-full flex-col">
+      <Card className="w-full bg-white dark:bg-gray-800">
+        {/* Header: title, breadcrumb, status tabs, search, primary action */}
+        <div className="flex w-full flex-col gap-2">
+          <div className="flex flex-col w-auto">
+            <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+              Supervisors
+            </h5>
+          </div>
+          <div className="flex w-full flex-col gap-3 pb-3 lg:flex-row lg:items-center lg:justify-between">
+            <PageBreadcrumb items={BREADCRUMBS} className="w-full shrink-0 lg:w-auto" />
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto">
+              <div className="flex gap-2">
+                {STATUS_TABS.map((item) => (
+                  <Button
+                    key={item}
+                    size="xs"
+                    color={status === item ? "blue" : "light"}
+                    className="transition-colors"
+                    onClick={() => setStatus(item)}
+                  >
+                    {item === "ALL"
+                      ? "All"
+                      : item === "ACTIVE"
+                        ? "Active"
+                        : "Inactive"}
+                  </Button>
+                ))}
+              </div>
+              <div className="min-w-0 flex-1 sm:w-[320px]">
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search name, email or phone…"
+                  className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-white/8 dark:bg-[#374151] dark:text-slate-100 dark:placeholder:text-slate-400"
+                />
+              </div>
+              <Link href="/admin/supervisors/create" className="cursor-pointer shrink-0">
+                <Button>New</Button>
+              </Link>
             </div>
-
-            {loading ? (
-                <div className="flex justify-center p-8">
-                    <JarvisLoader size="lg" />
-                </div>
-            ) : (
-                <div className="overflow-x-auto rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                    <Table hoverable>
-                        <TableHead>
-                          <TableRow>
-                              <TableHeadCell>Name</TableHeadCell>
-                              <TableHeadCell>Phone</TableHeadCell>
-                              <TableHeadCell>Status</TableHeadCell>
-                              <TableHeadCell>
-                                  <span className="sr-only">Actions</span>
-                              </TableHeadCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody className="divide-y">
-                            {filteredSupervisors.length > 0 ? (
-                                filteredSupervisors.map((supervisor) => (
-                                    <TableRow key={supervisor.id} className="bg-white dark:bg-gray-800 dark:border-gray-700">
-                                        <TableCell className="whitespace-nowrap font-medium text-gray-900 dark:text-white border-r border-gray-100 dark:border-gray-700">
-                                            {supervisor.name}
-                                            <div className="text-xs text-gray-500 font-normal">{supervisor.email}</div>
-                                        </TableCell>
-                                        <TableCell className="border-r border-gray-100 dark:border-gray-700 text-gray-900 dark:text-white">
-                                            {supervisor.phone}
-                                        </TableCell>
-                                        <TableCell className="border-r border-gray-100 dark:border-gray-700">
-                                            {supervisor.isActive ? (
-                                                <Badge color="success" className="w-max">Active</Badge>
-                                            ) : (
-                                                <Badge color="failure" className="w-max">Inactive</Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex gap-2">
-                                                <Link href={`/admin/supervisors/${supervisor.id}`}>
-                                                    <Button
-                                                        size="sm"
-                                                        color="light"
-                                                    >
-                                                        <HiPencil className="mr-2 h-4 w-4" />
-                                                        Edit
-                                                    </Button>
-                                                </Link>
-                                                <Button
-                                                    size="sm"
-                                                    color="failure"
-                                                    onClick={() => handleDeleteClick(supervisor.id)}
-                                                >
-                                                    <HiTrash className="mr-2 h-4 w-4" />
-                                                    Delete
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={4} className="text-center py-8 text-gray-500">
-                                        No supervisors found.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
-            )}
-
-
-            <Modal show={showDeleteModal} size="md" onClose={() => setShowDeleteModal(false)} popup>
-                <div className="p-6 text-center">
-                    <HiOutlineExclamationCircle className="mx-auto mb-4 h-14 w-14 text-gray-400 dark:text-gray-200" />
-                    <h3 className="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
-                        Are you sure you want to delete this supervisor? This action cannot be undone.
-                    </h3>
-                    <div className="flex justify-center gap-4">
-                        <Button color="failure" onClick={confirmDelete} disabled={isDeleting}>
-                            {isDeleting ? "Deleting..." : "Yes, I'm sure"}
-                        </Button>
-                        <Button color="gray" onClick={() => setShowDeleteModal(false)} disabled={isDeleting}>
-                            No, cancel
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
+          </div>
         </div>
-    );
+
+        {listError && (
+          <div className="py-4 text-center text-red-500 dark:text-red-400">
+            {listError}
+          </div>
+        )}
+
+        {/* Table: responsive container + rows */}
+        <div className="w-full overflow-hidden rounded-xl bg-slate-100 p-3 sm:p-5 dark:bg-gray-900">
+          <div className="overflow-x-auto">
+            <Table className="min-w-full">
+              <TableHead>
+                <TableRow>
+                  <TableHeadCell className="whitespace-nowrap">S. No.</TableHeadCell>
+                  <TableHeadCell className="whitespace-nowrap">Name</TableHeadCell>
+                  <TableHeadCell className="whitespace-nowrap">Email</TableHeadCell>
+                  <TableHeadCell className="whitespace-nowrap">Phone</TableHeadCell>
+                  <TableHeadCell className="whitespace-nowrap">Status</TableHeadCell>
+                  <TableHeadCell className="whitespace-nowrap">Actions</TableHeadCell>
+                </TableRow>
+              </TableHead>
+              <TableBody className="divide-y">
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow
+                      key={i}
+                      className="bg-white dark:border-gray-700 dark:bg-gray-800"
+                    >
+                      {Array.from({ length: 6 }).map((__, c) => (
+                        <TableCell key={c}>
+                          <Skeleton className="h-4 w-full" />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : !listError && filtered.length > 0 ? (
+                  filtered.map((supervisor, index) => (
+                    <TableRow
+                      key={supervisor.id}
+                      className="bg-white dark:border-gray-700 dark:bg-gray-800"
+                    >
+                      <TableCell className="whitespace-nowrap">{index + 1}</TableCell>
+                      <TableCell className="min-w-0 font-medium whitespace-nowrap text-gray-900 dark:text-white">
+                        <Link
+                          href={`/admin/supervisors/${supervisor.id}`}
+                          className="block max-w-[180px] truncate text-blue-600 hover:underline dark:text-blue-400 sm:max-w-none"
+                          title={`View ${supervisor.name}`}
+                        >
+                          {supervisor.name}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="min-w-0 font-medium whitespace-nowrap text-gray-900 dark:text-white">
+                        <div className="max-w-[220px] truncate sm:max-w-none">
+                          {supervisor.email}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium whitespace-nowrap text-gray-900 dark:text-white">
+                        {supervisor.phone}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          color={supervisor.isActive ? "success" : "gray"}
+                          className="w-fit"
+                        >
+                          {supervisor.isActive ? "ACTIVE" : "INACTIVE"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-row items-center gap-3">
+                          <Link
+                            href={`/admin/supervisors/${supervisor.id}`}
+                            className="w-fit"
+                            title="Edit"
+                          >
+                            <div className="rounded-md bg-blue-600 p-1 transition-colors hover:bg-blue-700">
+                              <HiPencil size={20} className="text-white" />
+                            </div>
+                          </Link>
+                          <button
+                            type="button"
+                            className="w-fit"
+                            title="Delete"
+                            onClick={() => setDeleting(supervisor)}
+                          >
+                            <div className="rounded-md bg-red-600 p-1 transition-colors hover:bg-red-700">
+                              <HiTrash size={20} className="text-white" />
+                            </div>
+                          </button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="py-4 text-center text-gray-500 dark:text-gray-400"
+                    >
+                      {emptyMessage}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 pt-2 text-sm text-gray-500 dark:text-gray-400">
+          <span>
+            Showing {loading ? 0 : filtered.length} of {supervisors.length} supervisors.
+          </span>
+        </div>
+      </Card>
+
+      <ConfirmModal
+        showModal={!!deleting}
+        tone="danger"
+        title="Delete this supervisor?"
+        confirmationText={
+          deleting
+            ? `${deleting.name} will be removed. This action cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        loadingLabel="Deleting…"
+        loading={isDeleting}
+        acceptCallback={confirmDelete}
+        closeCallback={() => {
+          if (!isDeleting) setDeleting(null);
+        }}
+      />
+    </div>
+  );
 }

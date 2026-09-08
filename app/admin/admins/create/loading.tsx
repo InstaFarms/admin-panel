@@ -1,1 +1,1 @@
-export { default } from "@/components/PageLoadingSpinner";
+export { default } from "../[id]/AdminFormPageSkeleton";

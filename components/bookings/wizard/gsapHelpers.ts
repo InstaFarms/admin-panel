@@ -1,5 +1,6 @@
 import type { RefObject } from "react";
 import { gsap } from "gsap";
+import { prefersReducedMotion } from "@/lib/motion";
 
 // Thin wrappers around GSAP so every animation in the design mock ("Create
 // Booking Wizard.dc.html") degrades to an instant, correct state if GSAP
@@ -33,6 +34,10 @@ export function staggerReveal(el: HTMLElement | null) {
   loadGsap().then((gsap) => {
     const kids = Array.from(el.children) as HTMLElement[];
     if (!kids.length) return;
+    if (prefersReducedMotion()) {
+      gsap.set(kids, { opacity: 1, x: 0, y: 0, scale: 1 });
+      return;
+    }
     gsap.killTweensOf(kids);
     gsap.fromTo(
       kids,
@@ -75,7 +80,7 @@ export function countUp(el: HTMLElement | null, value: number, format: (v: numbe
 
 /** Flash a value span when it changes, matching `flashRef()`. */
 export function flashValue(el: HTMLElement | null) {
-  if (!el) return;
+  if (!el || prefersReducedMotion()) return;
   loadGsap().then((gsap) => {
     gsap.fromTo(
       el,
@@ -89,6 +94,10 @@ export function flashValue(el: HTMLElement | null) {
 export function popCheck(el: HTMLElement | null) {
   if (!el) return;
   loadGsap().then((gsap) => {
+    if (prefersReducedMotion()) {
+      gsap.set(el, { scale: 1, rotate: 0 });
+      return;
+    }
     gsap.fromTo(el, { scale: 0, rotate: -30 }, { scale: 1, rotate: 0, duration: 0.7, ease: "back.out(1.7)" });
   });
 }
@@ -105,6 +114,10 @@ export function slideUpToast(el: HTMLElement | null) {
 export function revealNewRow(el: HTMLElement | null) {
   if (!el) return;
   loadGsap().then((gsap) => {
+    if (prefersReducedMotion()) {
+      gsap.set(el, { opacity: 1, y: 0, height: "auto", marginBottom: 0 });
+      return;
+    }
     gsap.fromTo(
       el,
       { opacity: 0, y: -8, height: 0, marginBottom: -12 },
@@ -228,7 +241,7 @@ export function slideIndicator(indEl: HTMLElement | null, targetEl: HTMLElement 
       width: targetEl.offsetWidth,
       opacity: 1,
       ...(backgroundColor ? { backgroundColor } : {}),
-      duration: animate ? 0.38 : 0,
+      duration: animate && !prefersReducedMotion() ? 0.38 : 0,
       ease: "power3.out",
     });
   });

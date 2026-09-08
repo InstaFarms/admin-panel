@@ -26,7 +26,6 @@ export default function CouponMaxDiscount({
         type="number"
         placeholder="Enter maximum discount amount"
         min="0"
-        required
         defaultValue={defaultMaxDiscount}
         className="w-full"
         color={error ? "failure" : "gray"}

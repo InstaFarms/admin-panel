@@ -388,9 +388,9 @@ export default async function Page({ params }: ServerPageProps) {
         >
           <input type="hidden" name="ownerId" value={idString} />
           <div>
-            <Label htmlFor="amount">Amount (₹)</Label>
+            <Label htmlFor="legacyPayoutAmount">Amount (₹)</Label>
             <TextInput
-              id="amount"
+              id="legacyPayoutAmount"
               name="amount"
               type="number"
               step="0.01"

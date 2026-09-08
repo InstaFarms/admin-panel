@@ -40,7 +40,7 @@ export const fetchAccommodationGstConfig = async (
       success: boolean;
       data?: { policy: AccommodationGstPolicy; history: AccommodationGstConfigRow[] };
       message?: string;
-    }>(`/admin/tax-configuration/accommodation-gst${buildQueryString({ brandId: brandId || undefined })}`, {
+    }>(`/api/admin/tax-configuration/accommodation-gst${buildQueryString({ brandId: brandId || undefined })}`, {
       token,
     });
     if (!result.success || !result.data) {
@@ -71,7 +71,7 @@ export const addAccommodationGstConfigRow = async (input: {
       success: boolean;
       data?: AccommodationGstConfigRow;
       message?: string;
-    }>("/admin/tax-configuration/accommodation-gst", input, { token });
+    }>("/api/admin/tax-configuration/accommodation-gst", input, { token });
     if (!result.success || !result.data) {
       return { success: false, error: result.message || "Failed to add accommodation GST configuration row" };
     }

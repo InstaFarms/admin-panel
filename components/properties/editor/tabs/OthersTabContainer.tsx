@@ -6,6 +6,7 @@ import { usePropertyRichTextConfig } from "@/components/properties/usePropertyRi
 import { type BrandSlug } from "@/lib/properties/propertyEditorDraft";
 import { DateTime } from "luxon";
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { v4 } from "uuid";
 import type { SectionChange } from "./types";
 
@@ -127,20 +128,47 @@ export default function OthersTabContainer({
           reader.onload = (event) => {
             const csv = String(event.target?.result ?? "");
             const rows = csv.split("\n").filter((line) => line.trim().length > 0);
-            if (rows.length < 2) return;
-            const parsed = rows
-              .slice(1)
+            if (rows.length < 2) {
+              toast.error("FAQ CSV has no data rows — expected a header row plus at least one FAQ.");
+              return;
+            }
+            const dataRows = rows.slice(1);
+            const badRowNumbers: number[] = [];
+            const parsed = dataRows
               .map((line, index) => {
                 const cols = line.split(",");
-                return {
+                const item = {
                   id: v4(),
                   category: (cols[0] ?? "Others").replace(/\"/g, "").trim(),
                   question: (cols[1] ?? "").replace(/\"/g, "").trim(),
                   answer: (cols[2] ?? "").replace(/\"/g, "").trim(),
                   weight: index,
                 };
+                if (!item.question || !item.answer) {
+                  // +2: +1 for the header row, +1 to make it 1-indexed for the user.
+                  badRowNumbers.push(index + 2);
+                }
+                return item;
               })
               .filter((item) => item.question && item.answer);
+
+            if (parsed.length === 0) {
+              toast.error(
+                `FAQ CSV import failed — every row is missing a question and/or answer ` +
+                  `(row${badRowNumbers.length === 1 ? "" : "s"} ${badRowNumbers.join(", ")}). Nothing was imported.`
+              );
+              return;
+            }
+
+            if (badRowNumbers.length > 0) {
+              toast.error(
+                `Skipped ${badRowNumbers.length} malformed row${badRowNumbers.length === 1 ? "" : "s"} ` +
+                  `(row${badRowNumbers.length === 1 ? "" : "s"} ${badRowNumbers.join(", ")} — missing question and/or answer). ` +
+                  `Imported the other ${parsed.length}.`
+              );
+            } else {
+              toast.success(`Imported ${parsed.length} FAQ${parsed.length === 1 ? "" : "s"} from CSV.`);
+            }
 
             if (replaceExisting) {
               onSectionChange(`${othersBrandSlug}.others.faqs`, parsed);

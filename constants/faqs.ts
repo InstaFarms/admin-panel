@@ -11,15 +11,36 @@ const FAQ_CONTENT_SECTION_LABEL: Record<BrandAdminScope, string> = {
   mago: "Mago Content",
 };
 
+/**
+ * The FAQ categories, which are ALSO the admin URL slugs — the [slug] route
+ * passes the slug straight through as the category filter. They used to
+ * differ ("mago-locations" vs a stored "All-Location"), so three of the four
+ * FAQ screens queried categories that did not exist and listed nothing.
+ * These values match the faqCategory enum in the database.
+ */
+export const FAQ_CATEGORIES = [
+  "all-location",
+  "all-collection",
+  "customer-care",
+] as const;
+
+export const FAQ_CATEGORY_LABELS: Record<string, string> = {
+  "all-location": "Location FAQs",
+  "all-collection": "Collections FAQs",
+  "customer-care": "Customer Care FAQs",
+};
+
 /** Entry path for FAQ section in sidebar (first category). */
 const FAQ_CONTENT_ENTRY_SLUG: Record<BrandAdminScope, string> = {
-  instafarms: "locations",
-  mago: "mago-locations",
+  instafarms: "all-location",
+  mago: "all-location",
 };
 
 export function getFAQListBreadcrumbs(category: string, scope: BrandAdminScope = "instafarms") {
   const base = FAQ_CONTENT_BASE[scope];
-  const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
+  const categoryTitle =
+    FAQ_CATEGORY_LABELS[category] ??
+    category.charAt(0).toUpperCase() + category.slice(1);
   return [
     { href: "/", label: "Home" },
     { href: ADMIN_BASE_PATH, label: "Admin" },
@@ -30,7 +51,9 @@ export function getFAQListBreadcrumbs(category: string, scope: BrandAdminScope =
 
 export function getFAQCreateBreadcrumbs(category: string, scope: BrandAdminScope = "instafarms") {
   const base = FAQ_CONTENT_BASE[scope];
-  const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
+  const categoryTitle =
+    FAQ_CATEGORY_LABELS[category] ??
+    category.charAt(0).toUpperCase() + category.slice(1);
   return [
     { href: "/", label: "Home" },
     { href: ADMIN_BASE_PATH, label: "Admin" },
@@ -41,7 +64,9 @@ export function getFAQCreateBreadcrumbs(category: string, scope: BrandAdminScope
 
 export function getFAQEditBreadcrumbs(category: string, scope: BrandAdminScope = "instafarms") {
   const base = FAQ_CONTENT_BASE[scope];
-  const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
+  const categoryTitle =
+    FAQ_CATEGORY_LABELS[category] ??
+    category.charAt(0).toUpperCase() + category.slice(1);
   return [
     { href: "/", label: "Home" },
     { href: ADMIN_BASE_PATH, label: "Admin" },

@@ -74,6 +74,24 @@ describe("loginActions", () => {
         message: "Unable to connect to server. Please check your internet connection.",
       });
     });
+
+    // This is the path production actually takes: fetchAPI throws on non-2xx and
+    // the API answers 403 here, so the rejection never reaches the
+    // `!response.success` branch. The test above it passes either way.
+    it("returns admin-specific message when the non-admin rejection arrives as a thrown 403", async () => {
+      vi.mocked(apiPost).mockRejectedValueOnce(
+        new Error("No admin account found with this phone number")
+      );
+
+      const result = await sendOTP("+919111111111");
+
+      expect(result).toEqual({
+        success: false,
+        message:
+          "This phone number is not registered as an admin. Please contact your administrator.",
+        isAdminError: true,
+      });
+    });
   });
 
   describe("verifyOTPAndLogin", () => {
@@ -90,6 +108,19 @@ describe("loginActions", () => {
         success: false,
         message: "Access Denied: This account does not have admin privileges.",
         isAdminError: true,
+      });
+    });
+
+    // Same reason as the sendOTP throw-path test: a wrong OTP comes back as a
+    // thrown non-2xx, not as a resolved `{ success: false }`.
+    it("maps a thrown invalid-OTP rejection to the friendly message", async () => {
+      vi.mocked(apiPost).mockRejectedValueOnce(new Error("Invalid OTP"));
+
+      const result = await verifyOTPAndLogin("+911234567890", "999999");
+
+      expect(result).toEqual({
+        success: false,
+        message: "Invalid OTP. Please check and try again.",
       });
     });
 

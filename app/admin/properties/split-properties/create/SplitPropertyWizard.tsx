@@ -199,10 +199,29 @@ export default function SplitPropertyWizard() {
     );
   };
 
+  // Finds the first code shared by two or more children (case-insensitive,
+  // trimmed). Returns null when every code is unique.
+  const findDuplicateCode = (list: ChildConfig[]): string | null => {
+    const seen = new Set<string>();
+    for (const c of list) {
+      const code = c.code.trim().toLowerCase();
+      if (!code) continue;
+      if (seen.has(code)) return c.code.trim();
+      seen.add(code);
+    }
+    return null;
+  };
+
   const isStepValid = (step: number): boolean => {
     if (step === 0) return !!brandId;
     if (step === 1) return !!parentPropertyId;
-    if (step === 2) return children.length >= 2 && children.every((c) => c.name.trim() && c.code.trim());
+    if (step === 2) {
+      return (
+        children.length >= 2 &&
+        children.every((c) => c.name.trim() && c.code.trim()) &&
+        !findDuplicateCode(children)
+      );
+    }
     return true;
   };
 
@@ -210,7 +229,10 @@ export default function SplitPropertyWizard() {
     if (!isStepValid(currentStep)) {
       if (currentStep === 0) toast.error("Select a brand to continue.");
       else if (currentStep === 1) toast.error("Select a property to continue.");
-      else if (currentStep === 2) toast.error("Each split needs a name and code.");
+      else if (currentStep === 2) {
+        const dupe = findDuplicateCode(children);
+        toast.error(dupe ? `Two splits share the code "${dupe}" — codes must be unique.` : "Each split needs a name and code.");
+      }
       return;
     }
     setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
@@ -223,6 +245,16 @@ export default function SplitPropertyWizard() {
         try {
           if (!parentPropertyId) { toast.error("No parent property selected."); return; }
           if (children.length < 2) { toast.error("Need at least 2 splits."); return; }
+          // Re-checked here, not just at the "Continue" gate: the step
+          // indicator (StepProgress) lets an admin jump straight to Review
+          // without ever passing goNext's validation, so this is the real,
+          // last-line guard before the irreversible parallel create calls
+          // below fire.
+          const dupeCode = findDuplicateCode(children);
+          if (dupeCode) {
+            toast.error(`Two splits share the code "${dupeCode}" — give each split a unique code before confirming.`);
+            return;
+          }
 
           const baseModes = createDefaultModes();
           const sectionModes: Record<SplitSectionKey, SplitSectionMode> = {
