@@ -25,6 +25,7 @@ import PlansTabContainer from "./tabs/PlansTabContainer";
 import SpacesTabContainer from "./tabs/SpacesTabContainer";
 import OccasionScoresTabContainer from "./tabs/OccasionScoresTabContainer";
 import ResortRoomsTabContainer from "./tabs/ResortRoomsTabContainer";
+import SleepingSlotsTabContainer from "./tabs/SleepingSlotsTabContainer";
 import TabScopeGate from "./TabScopeGate";
 import type { BrandOption, SectionChange } from "./tabs/types";
 import PropertyGstStatusSection from "@/components/properties/gst-status/PropertyGstStatusSection";
@@ -61,7 +62,10 @@ export const PROPERTY_EDITOR_TAB_INDEX = {
   ICAL: 10,
   OTHERS: 11,
   OCCASION_SCORES: 12,
-  MANAGE_ROOMS: 13,
+  SLEEPING_SLOTS: 13,
+  // Manage Rooms renders after Sleeping Slots and only for resorts; keeping the
+  // conditional tab LAST keeps every unconditional tab's index stable.
+  MANAGE_ROOMS: 14,
 } as const;
 
 /**
@@ -421,6 +425,19 @@ export function PropertyEditorTabs({
           </TabScopeGate>
         ) : null}
       </TabItem>
+
+      {/* Sleeping Slots — bed-wise booking config; available for any property */}
+      {propertyId ? (
+        <TabItem title={<TabLabel label="Sleeping Slots" scope="property" isLocked={activeScope === "brand"} />} disabled={activeScope === "brand"}>
+          {isTabVisited(PROPERTY_EDITOR_TAB_INDEX.SLEEPING_SLOTS) ? (
+            <TabScopeGate locked={activeScope === "brand"} message={PROPERTY_LOCKED_MSG}>
+              <TabContentMotion>
+                <SleepingSlotsTabContainer propertyId={propertyId} />
+              </TabContentMotion>
+            </TabScopeGate>
+          ) : null}
+        </TabItem>
+      ) : null}
 
       {/* Manage Rooms — visible only for Resort property type */}
       {isResort && propertyId ? (
