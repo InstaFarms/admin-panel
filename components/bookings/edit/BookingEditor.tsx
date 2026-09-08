@@ -24,6 +24,7 @@ import BookingFinanceCorrectionHistoryPanel from "./components/BookingFinanceCor
 import GuestIdCardsPanel from "./components/GuestIdCardsPanel";
 import ReservationOperationsPanel from "./components/ReservationOperationsPanel";
 import BookingAdjustmentsTab from "@/components/bookings/adjustments/BookingAdjustmentsTab";
+import BookingBedAssignments from "@/components/bookings/edit/BookingBedAssignments";
 import { useDarkMode } from "@/hooks/bookings/useDarkMode";
 import {
   HiArrowTopRightOnSquare,
@@ -3092,6 +3093,11 @@ export default function BookingEditor({ bookingId }: BookingEditorProps) {
                             </div>
                           </div>
                         </DetailDashboardSection>
+
+                        <BookingBedAssignments
+                          propertyId={hookData.bookingData.property?.id}
+                          bookingId={bookingId}
+                        />
 
                         <DetailDashboardSection title="Pricing Snapshot">
                           <div className="space-y-4">

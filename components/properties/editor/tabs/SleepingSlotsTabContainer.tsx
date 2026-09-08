@@ -3,10 +3,12 @@
 import {
   createSleepingSlotRoom,
   getSleepingSlotConfig,
+  getSleepingSlotOccupancy,
   setSleepingSlotEnabled,
   updateSleepingSlot,
   updateSleepingSlotRoom,
   type CreateSleepingSlotRoomInput,
+  type OccupancyLayout,
   type SleepingSlot,
   type SleepingSlotConfig,
   type SleepingSlotRoom,
@@ -406,6 +408,109 @@ function RoomCard({
   );
 }
 
+// ─── Occupancy viewer (read-only, date-range) ─────────────────────────────────
+
+function GenderPill({ gender }: { gender: "MALE" | "FEMALE" }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+        gender === "MALE"
+          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+          : "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300"
+      }`}
+    >
+      {gender === "MALE" ? "Male" : "Female"}
+    </span>
+  );
+}
+
+function OccupancyViewer({ propertyId }: { propertyId: string }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const [startdate, setStartdate] = useState(today);
+  const [enddate, setEnddate] = useState(tomorrow);
+  const [layout, setLayout] = useState<OccupancyLayout | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    if (enddate <= startdate) {
+      toast.error("Check-out must be after check-in");
+      return;
+    }
+    setLoading(true);
+    const { data, error } = await getSleepingSlotOccupancy(propertyId, startdate, enddate);
+    setLoading(false);
+    if (error) return void toast.error(error);
+    setLayout(data);
+  };
+
+  const roomState: Record<string, string> = {
+    EMPTY: "Empty",
+    MALE_OCCUPIED: "Male occupied",
+    FEMALE_PRESENT: "Female present",
+  };
+
+  return (
+    <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+      <div>
+        <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Occupancy</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Who holds which bed for a date range — availability, occupant gender, and each room&apos;s
+          gender state. Read-only.
+        </p>
+      </div>
+      <div className="flex flex-wrap items-end gap-2">
+        <div>
+          <label className={lc}>Check-in</label>
+          <input type="date" className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200" value={startdate} onChange={(e) => setStartdate(e.target.value)} />
+        </div>
+        <div>
+          <label className={lc}>Check-out</label>
+          <input type="date" className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200" value={enddate} onChange={(e) => setEnddate(e.target.value)} />
+        </div>
+        <button type="button" onClick={() => void load()} disabled={loading} className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+          {loading ? "Loading…" : "View occupancy"}
+        </button>
+      </div>
+
+      {layout && (
+        <div className="space-y-3 pt-1">
+          {layout.rooms.length === 0 ? (
+            <p className="text-xs text-slate-500">No rooms configured.</p>
+          ) : (
+            layout.rooms.map((room) => (
+              <div key={room.id} className="rounded-lg border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2 dark:border-slate-700">
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{room.roomName}</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">{roomState[room.genderState] ?? room.genderState}</span>
+                </div>
+                <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                  {room.beds.flatMap((bed, bi) =>
+                    bed.slots.map((slot) => (
+                      <div key={slot.id} className="flex items-center gap-3 px-3 py-1.5 text-xs">
+                        <span className="w-24 text-slate-500 dark:text-slate-400">Bed {bi + 1} · {bed.bedType === "DOUBLE" ? "Double" : "Single"}</span>
+                        <span className="w-16 font-medium text-slate-700 dark:text-slate-300">Slot {slot.slotLabel}</span>
+                        {slot.available ? (
+                          <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">Available</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">Booked</span>
+                            {slot.occupantGender && <GenderPill gender={slot.occupantGender} />}
+                          </span>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main container ───────────────────────────────────────────────────────────
 
 export default function SleepingSlotsTabContainer({ propertyId }: Props) {
@@ -521,6 +626,8 @@ export default function SleepingSlotsTabContainer({ propertyId }: Props) {
           ))}
         </div>
       )}
+
+      {config.rooms.length > 0 && <OccupancyViewer propertyId={propertyId} />}
     </div>
   );
 }

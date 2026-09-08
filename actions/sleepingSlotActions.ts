@@ -41,6 +41,51 @@ export interface SleepingSlotConfig {
   rooms: SleepingSlotRoom[];
 }
 
+export interface BookingSlotAssignment {
+  slotId: string;
+  slotLabel: string;
+  bedType: "SINGLE" | "DOUBLE";
+  roomId: string;
+  roomName: string;
+  guestGender: "MALE" | "FEMALE";
+}
+
+export interface BookingSlotAssignments {
+  bookingId: string;
+  maleGuestCount: number | null;
+  femaleGuestCount: number | null;
+  assignments: BookingSlotAssignment[];
+}
+
+// Occupancy view reuses the customer layout shape (availability + genders).
+export interface OccupancySlot {
+  id: string;
+  slotLabel: string;
+  displayOrder: number;
+  basePricePerNight: number;
+  available: boolean;
+  occupantGender: "MALE" | "FEMALE" | null;
+}
+export interface OccupancyBed {
+  id: string;
+  bedType: "SINGLE" | "DOUBLE";
+  displayOrder: number;
+  slots: OccupancySlot[];
+}
+export interface OccupancyRoom {
+  id: string;
+  roomName: string;
+  displayOrder: number;
+  genderState: "EMPTY" | "MALE_OCCUPIED" | "FEMALE_PRESENT";
+  beds: OccupancyBed[];
+}
+export interface OccupancyLayout {
+  propertyId: string;
+  checkinDate: string;
+  checkoutDate: string;
+  rooms: OccupancyRoom[];
+}
+
 export interface CreateSleepingSlotRoomInput {
   roomName: string;
   displayOrder?: number;
@@ -152,5 +197,42 @@ export async function updateSleepingSlot(
     return {};
   } catch (err: any) {
     return { error: err?.message || "Failed to update slot" };
+  }
+}
+
+export async function getBookingSlotAssignments(
+  propertyId: string,
+  bookingId: string
+): Promise<{ data: BookingSlotAssignments | null; error?: string }> {
+  try {
+    const token = await getToken();
+    const res = await apiGet<{ success: boolean; data: BookingSlotAssignments }>(
+      `/api/properties/${propertyId}/sleeping-slots/bookings/${bookingId}`,
+      { token }
+    );
+    return { data: res.data ?? null };
+  } catch (err: any) {
+    // 404 = this booking simply isn't a bed-wise booking; treat as "no data".
+    if (typeof err?.message === "string" && err.message.includes("404")) {
+      return { data: null };
+    }
+    return { data: null, error: err?.message || "Failed to load bed assignments" };
+  }
+}
+
+export async function getSleepingSlotOccupancy(
+  propertyId: string,
+  startdate: string,
+  enddate: string
+): Promise<{ data: OccupancyLayout | null; error?: string }> {
+  try {
+    const token = await getToken();
+    const res = await apiGet<{ success: boolean; data: OccupancyLayout }>(
+      `/api/properties/${propertyId}/sleeping-slots/occupancy?startdate=${startdate}&enddate=${enddate}`,
+      { token }
+    );
+    return { data: res.data ?? null };
+  } catch (err: any) {
+    return { data: null, error: err?.message || "Failed to load occupancy" };
   }
 }
