@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { ToggleSwitch, TextInput, Textarea, Button, Badge } from "flowbite-react";
 import { updateElivaasPropertySetting } from "@/actions/elivaasActions";
 import type { ElivaasPropertySettings } from "@/actions/elivaasActions";
+import HtmlField from "@/components/HtmlField";
+import { isHtmlBlank } from "@/utils/html-content";
 
 interface CatalogData {
   description:   string | null;
@@ -541,9 +543,9 @@ export default function ElivaasPropertySettingsRow({
         amenitiesOverride:    amenities.trim()   || null,
         tagsOverride:         tags.trim()        || null,
         houseRulesOverride:      houseRules.trim()     || null,
-        faqsOverride:            faqs.filter(f => f.q.trim() || f.a.trim()).length > 0 ? JSON.stringify(faqs.filter(f => f.q.trim() || f.a.trim())) : null,
+        faqsOverride:            faqs.filter(f => f.q.trim() || !isHtmlBlank(f.a)).length > 0 ? JSON.stringify(faqs.filter(f => f.q.trim() || !isHtmlBlank(f.a))) : null,
         spacesOverride:          spaces.filter(s => s.title.trim() || s.description.trim()).length > 0 ? JSON.stringify(spaces.filter(s => s.title.trim() || s.description.trim())) : null,
-        sectionsOverride:        sections.filter(s => s.title.trim() || s.content.trim()).length > 0 ? JSON.stringify(sections.filter(s => s.title.trim() || s.content.trim())) : null,
+        sectionsOverride:        sections.filter(s => s.title.trim() || !isHtmlBlank(s.content)).length > 0 ? JSON.stringify(sections.filter(s => s.title.trim() || !isHtmlBlank(s.content))) : null,
         priceAmountOverride:     num(priceOverride),
         securityDepositOverride: num(securityDeposit),
         extraAdultRateOverride:  num(extraAdult),
@@ -676,12 +678,11 @@ export default function ElivaasPropertySettingsRow({
             />
           </Field>
           <Field label="Description" hint="(shown on detail page)">
-            <textarea
+            <HtmlField
+              size="full"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={setDescription}
               placeholder="Write a custom description for customers…"
-              rows={4}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
           </Field>
         </Section>
@@ -804,12 +805,11 @@ export default function ElivaasPropertySettingsRow({
                   </div>
                   <div className="flex items-start gap-1">
                     <span className="text-[10px] font-semibold text-gray-400 w-4 pt-1.5">A</span>
-                    <Textarea
+                    <HtmlField
                       value={faq.a}
-                      onChange={(e) => setFaqs(prev => prev.map((f, j) => j === i ? { ...f, a: e.target.value } : f))}
+                      onChange={(a) => setFaqs(prev => prev.map((f, j) => j === i ? { ...f, a } : f))}
                       placeholder="Answer"
-                      rows={2}
-                      className="flex-1 text-xs"
+                      className="flex-1"
                     />
                   </div>
                 </div>
@@ -875,12 +875,10 @@ export default function ElivaasPropertySettingsRow({
                       sizing="sm"
                       onChange={(e) => setSections(prev => prev.map((s, j) => j === i ? { ...s, title: e.target.value } : s))}
                     />
-                    <Textarea
+                    <HtmlField
                       value={sec.content}
                       placeholder="Content…"
-                      rows={3}
-                      className="text-xs"
-                      onChange={(e) => setSections(prev => prev.map((s, j) => j === i ? { ...s, content: e.target.value } : s))}
+                      onChange={(content) => setSections(prev => prev.map((s, j) => j === i ? { ...s, content } : s))}
                     />
                   </div>
                   <button

@@ -43,6 +43,8 @@ import type {
   LocationOption,
   LocationRole,
 } from "@/types/locations";
+import HtmlField from "@/components/HtmlField";
+import { isHtmlBlank } from "@/utils/html-content";
 import { NearbyPicker } from "../../components/NearbyPicker";
 import wizardStyles from "../create/CreateStateWizard.module.css";
 import styles from "./StateEditPage.module.css";
@@ -217,7 +219,7 @@ function buildInitialModel(data: LocationDetail, brands: BrandSeed[]): EditModel
 
 function toFaqPayload(items: Array<{ q: string; a: string }>) {
   return items
-    .filter((item) => item.q.trim() && item.a.trim())
+    .filter((item) => item.q.trim() && !isHtmlBlank(item.a))
     .map((item, index) => ({
       question: item.q.trim(),
       answer: item.a.trim(),
@@ -424,12 +426,10 @@ function BrandDetailSection({
       </Field>
 
       <Field label="Short description">
-        <textarea
-          className={wizardStyles.textarea}
-          rows={3}
+        <HtmlField
           value={data.shortDesc}
           placeholder="One or two lines summarising this brand's offering here."
-          onChange={(event) => onChange({ shortDesc: event.target.value })}
+          onChange={(shortDesc) => onChange({ shortDesc })}
         />
       </Field>
 
@@ -496,13 +496,12 @@ function BrandPageSection({
         />
       </Field>
       <Field label="Page body" hint="Rich content for the brand's state landing page.">
-        <textarea
-          className={wizardStyles.textarea}
-          rows={9}
+        <HtmlField
+          size="full"
           value={data.page.body}
           placeholder="Write the long-form page content here..."
-          onChange={(event) =>
-            onChange({ page: { ...data.page, body: event.target.value } as BrandContent["page"] })
+          onChange={(body) =>
+            onChange({ page: { ...data.page, body } as BrandContent["page"] })
           }
         />
       </Field>
@@ -552,15 +551,13 @@ function BrandFaqSection({
                   })
                 }
               />
-              <textarea
-                className={wizardStyles.textarea}
-                rows={2}
+              <HtmlField
                 value={faq.a}
                 placeholder="Answer"
-                onChange={(event) =>
+                onChange={(a) =>
                   onChange({
                     faqs: data.faqs.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, a: event.target.value } : item
+                      itemIndex === index ? { ...item, a } : item
                     ),
                   })
                 }

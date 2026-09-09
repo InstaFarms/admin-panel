@@ -9,6 +9,7 @@ import { apiDelete, apiGet, apiPatch, apiPost, buildQueryString } from "@/utils/
 import { isAdmin } from "@/utils/admin-only";
 import type { PropertyUpsertPayload, PropertyUpsertResultData } from "@/lib/properties/propertyUpsert";
 import type { PropertySectionKey } from "@/types/jarvis-property-sections";
+import { sanitizeHtmlFields } from "@/utils/sanitize-html";
 import { captureError } from "@/lib/sentry";
 
 const WEBSITE_REVALIDATION_SECRET = "instafarms-local-revalidation-secret";
@@ -237,9 +238,11 @@ export const createPropertyFromPayload = async (
       return { error: "Unauthorized - No token found" };
     }
 
+    // Summary, booking policy, home rules and FAQ answers are rich text rendered
+    // raw on the public site — strip anything executable before it is stored.
     const result = await apiPost<{ success?: boolean; data?: unknown; message?: string; meta?: unknown }>(
       "/api/properties",
-      payload,
+      sanitizeHtmlFields(payload),
       { token }
     );
 
@@ -290,7 +293,7 @@ export const editPropertyFromPayload = async (
 
     const result = await apiPatch<{ success?: boolean; data?: unknown; message?: string; meta?: unknown }>(
       `/api/properties/${propertyId}`,
-      payload,
+      sanitizeHtmlFields(payload),
       { token }
     );
 

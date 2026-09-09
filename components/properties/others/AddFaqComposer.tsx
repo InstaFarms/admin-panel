@@ -1,6 +1,9 @@
 "use client";
 
-import { Button, Select, TextInput, Textarea } from "flowbite-react";
+import { Button, Select, TextInput } from "flowbite-react";
+
+import HtmlField from "@/components/HtmlField";
+import { isHtmlBlank } from "@/utils/html-content";
 
 import type { FaqDraft } from "./types";
 
@@ -57,12 +60,12 @@ export default function AddFaqComposer({
           onChange={(e) => onChange({ ...draft, question: e.target.value })}
         />
 
-        <Textarea
+        <HtmlField
           className="md:col-span-5"
+          label="Answer"
           placeholder="Answer"
           value={draft.answer}
-          onChange={(e) => onChange({ ...draft, answer: e.target.value })}
-          rows={3}
+          onChange={(answer) => onChange({ ...draft, answer })}
         />
       </div>
 
@@ -70,7 +73,7 @@ export default function AddFaqComposer({
         <Button type="button" color="gray" onClick={onClose}>
           Close
         </Button>
-        <Button type="button" color="blue" onClick={onSubmit} disabled={!draft.question.trim() || !draft.answer.trim()}>
+        <Button type="button" color="blue" onClick={onSubmit} disabled={!draft.question.trim() || isHtmlBlank(draft.answer)}>
           Save FAQ
         </Button>
       </div>

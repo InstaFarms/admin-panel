@@ -18,6 +18,7 @@ import {
   type CollectionSearchKey,
 } from "@/constants/collections";
 import { captureError } from "@/lib/sentry";
+import { sanitizeHtmlFields } from "@/utils/sanitize-html";
 
 const NEW_SCHEMA_HEADERS = { "X-Use-New-Schema": "true" };
 
@@ -88,10 +89,12 @@ function parseCollectionFormData(formData: FormData) {
     ? { title: info[0].title, description: info[0].content }
     : undefined;
 
-  return {
+  // FAQ answers and info-section content are admin-authored HTML rendered raw on
+  // the public site, so strip anything executable before it reaches the API.
+  return sanitizeHtmlFields({
     name, description, heading, slug, weight, hpc, logo, altText, isActive,
     faqs, info, properties, meta, information,
-  };
+  });
 }
 
 export const createCollection = async (formData: FormData): Promise<ServerActionResult<{ id: string }>> => {

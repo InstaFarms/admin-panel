@@ -2,7 +2,6 @@
 
 import OthersTabsSection from "@/components/properties/OthersTabsSection";
 import type { FaqItem, FaqUpdate } from "@/components/properties/others/types";
-import { usePropertyRichTextConfig } from "@/components/properties/usePropertyRichTextConfig";
 import { type BrandSlug } from "@/lib/properties/propertyEditorDraft";
 import { DateTime } from "luxon";
 import { useEffect, useState } from "react";
@@ -22,7 +21,6 @@ export default function OthersTabContainer({
   onSectionChange,
   othersBrandSlug,
 }: OthersTabContainerProps) {
-  const joditConfig = usePropertyRichTextConfig();
   const [selectedFaqCategory, setSelectedFaqCategory] = useState("");
   const [draggedFaqIndex, setDraggedFaqIndex] = useState<number | null>(null);
   const [dragOverFaqIndex, setDragOverFaqIndex] = useState<number | null>(null);
@@ -210,7 +208,6 @@ export default function OthersTabContainer({
         setMetaDescription={(value) => onSectionChange(`${othersBrandSlug}.others.metaDescription`, value)}
         metaKeyword={(sectionData.metaKeyword as string) || ""}
         setMetaKeyword={(value) => onSectionChange(`${othersBrandSlug}.others.metaKeyword`, value)}
-        joditConfig={joditConfig}
       />
     </div>
   );

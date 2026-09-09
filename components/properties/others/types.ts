@@ -23,6 +23,4 @@ export type FaqDraft = {
   answer: string;
 };
 
-export type JoditConfig = Record<string, unknown>;
-
 export type FaqUpdate = Partial<Pick<FaqItem, "question" | "answer" | "category" | "weight">>;

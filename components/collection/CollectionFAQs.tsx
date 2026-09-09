@@ -1,7 +1,8 @@
 "use client";
 
-import { Checkbox, Label, TextInput, Textarea } from "flowbite-react";
+import { Checkbox, Label, TextInput } from "flowbite-react";
 import { HiTrash } from "react-icons/hi";
+import HtmlField from "@/components/HtmlField";
 import MyButton from "@/components/MyButton";
 
 export interface FAQ {
@@ -58,16 +59,13 @@ export default function CollectionFAQs({
                 onChange={e => onUpdate(i, "question", e.target.value)}
               />
             </div>
-            <div>
-              <Label htmlFor={`faq-a-${i}`}>
-                Answer <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id={`faq-a-${i}`} rows={3} placeholder="Enter answer"
-                value={faq.answer}
-                onChange={e => onUpdate(i, "answer", e.target.value)}
-              />
-            </div>
+            <HtmlField
+              label="Answer"
+              required
+              placeholder="Enter answer"
+              value={faq.answer}
+              onChange={val => onUpdate(i, "answer", val)}
+            />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor={`faq-w-${i}`}>Weight</Label>

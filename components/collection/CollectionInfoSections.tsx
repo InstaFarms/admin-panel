@@ -1,7 +1,8 @@
 "use client";
 
-import { Checkbox, Label, TextInput, Textarea } from "flowbite-react";
+import { Checkbox, Label, TextInput } from "flowbite-react";
 import { HiTrash } from "react-icons/hi";
+import HtmlField from "@/components/HtmlField";
 import MyButton from "@/components/MyButton";
 
 export interface Info {
@@ -60,16 +61,14 @@ export default function CollectionInfoSections({
                 onChange={e => onUpdate(i, "title", e.target.value)}
               />
             </div>
-            <div>
-              <Label htmlFor={`info-c-${i}`}>
-                Content <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id={`info-c-${i}`} rows={4} placeholder="Section content"
-                value={info.content || ""}
-                onChange={e => onUpdate(i, "content", e.target.value)}
-              />
-            </div>
+            <HtmlField
+              label="Content"
+              required
+              size="full"
+              placeholder="Section content"
+              value={info.content || ""}
+              onChange={val => onUpdate(i, "content", val)}
+            />
             <div className="flex items-center gap-2">
               <Checkbox
                 id={`info-pub-${i}`}

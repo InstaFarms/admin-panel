@@ -2,6 +2,7 @@
 
 import { isAdmin } from "@/utils/admin-only";
 import { apiGet, apiPost, apiPut, apiPatch } from "@/utils/api-utils";
+import { sanitizeHtmlFields } from "@/utils/sanitize-html";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -227,6 +228,29 @@ export async function getElivaasPropertySettings(): Promise<ElivaasPropertySetti
   }
 }
 
+/**
+ * descriptionOverride is plain HTML, but faqsOverride and sectionsOverride are
+ * JSON *strings*, so the generic walker cannot see inside them. Decode, sanitize
+ * the HTML they carry, and re-encode.
+ */
+function sanitizeElivaasOverrides<T extends Record<string, any>>(updates: T): T {
+  const out: Record<string, any> = sanitizeHtmlFields(updates);
+
+  for (const key of ["faqsOverride", "sectionsOverride"] as const) {
+    const raw = out[key];
+    if (typeof raw !== "string" || !raw) continue;
+    try {
+      // FAQ answers are stored under "a", section bodies under "content".
+      out[key] = JSON.stringify(sanitizeHtmlFields(JSON.parse(raw), ["a", "answer", "content"]));
+    } catch {
+      // Malformed JSON: drop it rather than forward markup we could not inspect.
+      out[key] = null;
+    }
+  }
+
+  return out as T;
+}
+
 export async function updateElivaasPropertySetting(
   propertyId: string,
   updates: Partial<Omit<ElivaasPropertySettings, "propertyId" | "createdAt" | "updatedAt">>
@@ -237,7 +261,7 @@ export async function updateElivaasPropertySetting(
     const token = await getAuthToken();
     const res = await apiPut<{ success: boolean }>(
       `/api/elivaas/settings/${propertyId}`,
-      updates,
+      sanitizeElivaasOverrides(updates),
       { token }
     );
     if (!res.success) return { success: false };

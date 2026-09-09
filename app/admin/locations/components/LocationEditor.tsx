@@ -43,7 +43,9 @@ import type {
   NearbyLocationMapping,
 } from "@/types/locations";
 import LocationContentTab from "./LocationContentTab";
+import HtmlField from "@/components/HtmlField";
 import LocationFaqTab from "./LocationFaqTab";
+import { isHtmlBlank } from "@/utils/html-content";
 import LocationMetadataTab from "./LocationMetadataTab";
 
 interface LocationEditorProps {
@@ -389,7 +391,7 @@ export default function LocationEditor({
       formData.set(
         "faqs",
         JSON.stringify(
-          faqs.filter((faq) => faq.question.trim() && faq.answer.trim())
+          faqs.filter((faq) => faq.question.trim() && !isHtmlBlank(faq.answer))
         )
       );
       formData.set("metaTitle", metaTitle);
@@ -809,14 +811,10 @@ export default function LocationEditor({
               />
             </div>
             <div className="md:col-span-2">
-              <Label htmlFor="brandDescription" className="mb-2 block">
-                Short Description
-              </Label>
-              <Textarea
-                id="brandDescription"
+              <HtmlField
+                label="Short Description"
                 value={brandDescription}
-                onChange={(e) => setBrandDescription(e.target.value)}
-                rows={3}
+                onChange={setBrandDescription}
                 placeholder="Short override description"
               />
             </div>

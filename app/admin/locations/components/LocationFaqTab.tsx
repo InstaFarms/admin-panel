@@ -3,6 +3,7 @@
 import React from "react";
 import { Checkbox, Label, TextInput } from "flowbite-react";
 import { HiMinus, HiPlus } from "react-icons/hi";
+import HtmlField from "@/components/HtmlField";
 import LocationBrandTabWrapper from "./LocationBrandTabWrapper";
 
 interface LocationFaqTabProps {
@@ -83,16 +84,13 @@ export default function LocationFaqTab(props: LocationFaqTabProps) {
                     className="w-full"
                   />
                 </div>
-                <div className="md:col-span-4">
-                  <Label className="mb-2 block">Answer</Label>
-                  <textarea
-                    className="w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
-                    value={faq.answer}
-                    onChange={(e) => props.updateFaq(index, "answer", e.target.value)}
-                    placeholder="Enter the answer"
-                    rows={3}
-                  />
-                </div>
+                <HtmlField
+                  className="md:col-span-4"
+                  label="Answer"
+                  value={faq.answer}
+                  onChange={(answer) => props.updateFaq(index, "answer", answer)}
+                  placeholder="Enter the answer"
+                />
                 <div className="md:col-span-4 flex items-center gap-2">
                   <Checkbox
                     id={`faq-active-${index}`}

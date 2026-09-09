@@ -17,6 +17,8 @@ import {
   type BrandAdminScope,
 } from "@/constants/brandAdminScope";
 import { captureError } from "@/lib/sentry";
+import { isHtmlBlank } from "@/utils/html-content";
+import { sanitizeHtml } from "@/utils/sanitize-html";
 
 export const createFAQ = async (
   formData: FormData,
@@ -37,13 +39,19 @@ export const createFAQ = async (
     if (!question || question.trim().length === 0) {
       return { error: FAQ_VALIDATION.questionRequired };
     }
-    if (!answer || answer.trim().length === 0) {
+    // The answer is rich text: an "empty" editor still submits markup like
+    // <p><br></p>, so check for visible content rather than a non-empty string.
+    if (isHtmlBlank(answer)) {
       return { error: FAQ_VALIDATION.answerRequired };
     }
 
     await apiPost(
       "/api/faqs/management/create",
-      { question: question.trim(), answer: answer.trim(), category: category || null },
+      {
+        question: question.trim(),
+        answer: sanitizeHtml(answer).trim(),
+        category: category || null,
+      },
       { token, appType }
     );
 
@@ -83,13 +91,18 @@ export const editFAQ = async (
     if (!question || question.trim().length === 0) {
       return { error: FAQ_VALIDATION.questionRequired };
     }
-    if (!answer || answer.trim().length === 0) {
+    if (isHtmlBlank(answer)) {
       return { error: FAQ_VALIDATION.answerRequired };
     }
 
     await apiPost(
       "/api/faqs/management/update",
-      { id, question: question.trim(), answer: answer.trim(), category: category || null },
+      {
+        id,
+        question: question.trim(),
+        answer: sanitizeHtml(answer).trim(),
+        category: category || null,
+      },
       { token, appType }
     );
 

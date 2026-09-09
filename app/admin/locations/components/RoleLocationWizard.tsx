@@ -42,6 +42,8 @@ import type {
   LocationOption,
   LocationRole,
 } from "@/types/locations";
+import HtmlField from "@/components/HtmlField";
+import { isHtmlBlank } from "@/utils/html-content";
 import { NearbyPicker } from "./NearbyPicker";
 import styles from "../states/create/CreateStateWizard.module.css";
 
@@ -187,7 +189,7 @@ function blankBrand(): BrandContent {
 
 function toFaqPayload(items: Array<{ q: string; a: string }>): BrandLocationFaq[] {
   return items
-    .filter((item) => item.q.trim() && item.a.trim())
+    .filter((item) => item.q.trim() && !isHtmlBlank(item.a))
     .map((item, index) => ({
       question: item.q.trim(),
       answer: item.a.trim(),
@@ -1167,13 +1169,9 @@ export default function RoleLocationWizard({
                         </Field>
 
                         <Field label="Short description">
-                          <textarea
-                            className={styles.textarea}
-                            rows={4}
+                          <HtmlField
                             value={activeBrand.shortDesc}
-                            onChange={(event) =>
-                              setBrandData(state.activeBrand, { shortDesc: event.target.value })
-                            }
+                            onChange={(shortDesc) => setBrandData(state.activeBrand, { shortDesc })}
                           />
                         </Field>
 
@@ -1268,15 +1266,14 @@ export default function RoleLocationWizard({
                           />
                         </Field>
                         <Field label="Page body" hint={`Rich content for the brand's ${singularLabel} landing page.`}>
-                          <textarea
-                            className={styles.textarea}
-                            rows={9}
+                          <HtmlField
+                            size="full"
                             value={activeBrand.page.body}
-                            onChange={(event) =>
+                            onChange={(body) =>
                               dispatch({
                                 type: "set_brand_page",
                                 brandId: state.activeBrand,
-                                patch: { body: event.target.value },
+                                patch: { body },
                               })
                             }
                           />
@@ -1304,14 +1301,12 @@ export default function RoleLocationWizard({
                                     setBrandData(state.activeBrand, { faqs: next });
                                   }}
                                 />
-                                <textarea
-                                  className={styles.textarea}
-                                  rows={2}
+                                <HtmlField
                                   value={faq.a}
                                   placeholder="Answer"
-                                  onChange={(event) => {
+                                  onChange={(a) => {
                                     const next = activeBrand.faqs.map((item, itemIndex) =>
-                                      itemIndex === index ? { ...item, a: event.target.value } : item
+                                      itemIndex === index ? { ...item, a } : item
                                     );
                                     setBrandData(state.activeBrand, { faqs: next });
                                   }}

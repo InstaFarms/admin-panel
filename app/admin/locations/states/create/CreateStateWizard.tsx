@@ -35,6 +35,8 @@ import type {
   LocationOption,
   LocationRole,
 } from "@/types/locations";
+import HtmlField from "@/components/HtmlField";
+import { isHtmlBlank } from "@/utils/html-content";
 import { NearbyPicker } from "../../components/NearbyPicker";
 import styles from "./CreateStateWizard.module.css";
 
@@ -350,7 +352,7 @@ function shortCode(name: string) {
 
 function toFaqPayload(items: Array<{ q: string; a: string }>): BrandLocationFaq[] {
   return items
-    .filter((item) => item.q.trim() && item.a.trim())
+    .filter((item) => item.q.trim() && !isHtmlBlank(item.a))
     .map((item, index) => ({
       question: item.q.trim(),
       answer: item.a.trim(),
@@ -1331,14 +1333,10 @@ function StepContent(props: {
 
           <div className={styles.field}>
             <label className={styles.fieldLabel}>Short description</label>
-            <textarea
-              className={styles.textarea}
-              rows={3}
+            <HtmlField
               value={data.shortDesc}
               placeholder="One or two lines summarising this brand's offering here."
-              onChange={(event) =>
-                onSetBrandData(activeBrand, { shortDesc: event.target.value })
-              }
+              onChange={(shortDesc) => onSetBrandData(activeBrand, { shortDesc })}
             />
           </div>
 
@@ -1423,14 +1421,11 @@ function StepContent(props: {
           <div className={styles.field}>
             <label className={styles.fieldLabel}>Page body</label>
             <div className={styles.hint}>Rich content for the brand's state landing page.</div>
-            <textarea
-              className={styles.textarea}
-              rows={9}
+            <HtmlField
+              size="full"
               value={data.page.body}
               placeholder="Write the long-form page content here..."
-              onChange={(event) =>
-                onSetBrandPage(activeBrand, { body: event.target.value })
-              }
+              onChange={(body) => onSetBrandPage(activeBrand, { body })}
             />
           </div>
         </div>
@@ -1470,14 +1465,12 @@ function StepContent(props: {
                       onSetBrandData(activeBrand, { faqs: next });
                     }}
                   />
-                  <textarea
-                    className={styles.textarea}
-                    rows={2}
+                  <HtmlField
                     value={faq.a}
                     placeholder="Answer"
-                    onChange={(event) => {
+                    onChange={(a) => {
                       const next = data.faqs.map((item, itemIndex) =>
-                        itemIndex === index ? { ...item, a: event.target.value } : item
+                        itemIndex === index ? { ...item, a } : item
                       );
                       onSetBrandData(activeBrand, { faqs: next });
                     }}

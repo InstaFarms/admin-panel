@@ -9,13 +9,13 @@ import AddFaqComposer from "@/components/properties/others/AddFaqComposer";
 import FaqCard from "@/components/properties/others/FaqCard";
 import FaqControlBar from "@/components/properties/others/FaqControlBar";
 import RichTextPanel from "@/components/properties/others/RichTextPanel";
+import { isHtmlBlank } from "@/utils/html-content";
 import {
   DEFAULT_FAQ_CATEGORIES,
   DEFAULT_VISIBLE_FAQ_COUNT,
   type FaqDraft,
   type FaqItem,
   type FaqUpdate,
-  type JoditConfig,
 } from "@/components/properties/others/types";
 
 interface BeddingAvailabilityDraftItem {
@@ -206,7 +206,6 @@ interface OthersTabsSectionProps {
   setMetaDescription: (value: string) => void;
   metaKeyword: string;
   setMetaKeyword: (value: string) => void;
-  joditConfig: JoditConfig;
 }
 
 export default function OthersTabsSection(props: OthersTabsSectionProps) {
@@ -250,7 +249,6 @@ export default function OthersTabsSection(props: OthersTabsSectionProps) {
     setMetaDescription,
     metaKeyword,
     setMetaKeyword,
-    joditConfig,
   } = props;
 
   const [faqSearchQuery, setFaqSearchQuery] = useState("");
@@ -379,7 +377,7 @@ export default function OthersTabsSection(props: OthersTabsSectionProps) {
   const submitAddFaqDialog = () => {
     const question = newFaqDraft.question.trim();
     const answer = newFaqDraft.answer.trim();
-    if (!question || !answer) return;
+    if (!question || isHtmlBlank(answer)) return;
 
     addFaq({
       category: newFaqDraft.category.trim(),
@@ -706,7 +704,6 @@ export default function OthersTabsSection(props: OthersTabsSectionProps) {
           onChange={setDescriptionText}
           hiddenName="description"
           hiddenValue={descriptionText}
-          joditConfig={joditConfig}
         />
       </TabItem>
 
@@ -950,7 +947,6 @@ export default function OthersTabsSection(props: OthersTabsSectionProps) {
           onChange={setHomeRulesText}
           hiddenName="homeRulesAndTruth"
           hiddenValue={JSON.stringify({ content: homeRulesText })}
-          joditConfig={joditConfig}
         />
       </TabItem>
 
@@ -963,7 +959,6 @@ export default function OthersTabsSection(props: OthersTabsSectionProps) {
           onChange={setBookingPolicy}
           hiddenName="bookingPolicy"
           hiddenValue={bookingPolicy}
-          joditConfig={joditConfig}
         />
       </TabItem>
 

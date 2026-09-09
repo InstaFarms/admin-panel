@@ -1,7 +1,9 @@
 "use client";
 
-import { Select, TextInput, Textarea } from "flowbite-react";
+import { Select, TextInput } from "flowbite-react";
 import { HiDotsVertical } from "react-icons/hi";
+
+import HtmlField from "@/components/HtmlField";
 
 import type { FaqItem, FaqUpdate } from "./types";
 
@@ -151,12 +153,12 @@ export default function FaqCard({
                   onChange={(e) => onUpdate({ question: e.target.value })}
                 />
 
-                <Textarea
+                <HtmlField
                   className="md:col-span-5"
+                  label="Answer"
                   placeholder="Answer"
                   value={faq.answer || ""}
-                  onChange={(e) => onUpdate({ answer: e.target.value })}
-                  rows={3}
+                  onChange={(answer) => onUpdate({ answer })}
                 />
               </div>
 

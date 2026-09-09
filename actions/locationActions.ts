@@ -10,6 +10,7 @@ import type {
   LocationOption,
 } from "@/types/locations";
 import { captureError } from "@/lib/sentry";
+import { sanitizeHtmlFields } from "@/utils/sanitize-html";
 
 async function getAuthToken() {
   const token = await getApiAuthToken();
@@ -166,7 +167,9 @@ export async function updateLocation(id: string, formData: FormData) {
     };
   }
 
-  const response = await apiPatch<any>(`/api/locations/id/${id}`, payload, { token });
+  // Brand description, page body, how-to-reach and FAQ answers are rich text
+  // rendered raw on the public site. Every location wizard funnels through here.
+  const response = await apiPatch<any>(`/api/locations/id/${id}`, sanitizeHtmlFields(payload), { token });
   revalidatePath("/admin/locations");
   revalidatePath(`/admin/locations/${id}`);
   return response?.data;
