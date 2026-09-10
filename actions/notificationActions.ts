@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { apiGet, apiPatch, apiPost } from "@/utils/api-utils";
 import { parseFilterParams, parseLimitOffset } from "@/utils/server-utils";
 import { captureError } from "@/lib/sentry";
@@ -324,3 +325,65 @@ export async function getDeadLetterQueue(
   }
 }
 
+
+// ── Admin alert rules ─────────────────────────────────────────────────────────
+// Which admin panel roles are emailed for which admin.* event. P1 sends
+// immediately; P2 is held for the daily digest (Phase 2) and sends nothing yet.
+
+export type AdminAlertPriority = "P1" | "P2";
+
+export type AdminAlertRule = {
+  id: string;
+  eventTypeId: string;
+  eventName: string;
+  adminRole: "SUPER_ADMIN" | "OPS_TEAM" | "SALES_EXECUTIVE" | "FINANCE_TEAM";
+  priority: AdminAlertPriority;
+  enabled: boolean;
+  updatedAt: string | null;
+};
+
+export async function getAdminAlertRules(): Promise<AdminAlertRule[]> {
+  try {
+    const token = await getAuthToken();
+    const response = await apiGet<{ success: boolean; data: AdminAlertRule[] }>(
+      "/api/notifications/admin-alert-rules",
+      { token }
+    );
+    return response.data || [];
+  } catch (error) {
+    console.error("Error fetching admin alert rules:", error);
+    captureError(error);
+    throw error;
+  }
+}
+
+export async function updateAdminAlertRule(
+  id: string,
+  patch: { priority?: AdminAlertPriority; enabled?: boolean }
+): Promise<void> {
+  try {
+    const token = await getAuthToken();
+    await apiPatch(`/api/notifications/admin-alert-rules/${id}`, patch, { token });
+    revalidatePath("/admin/notifications/admin-alerts");
+  } catch (error) {
+    console.error("Error updating admin alert rule:", error);
+    captureError(error);
+    throw error;
+  }
+}
+
+export async function createAdminAlertRule(input: {
+  eventTypeId: string;
+  adminRole: AdminAlertRule["adminRole"];
+  priority?: AdminAlertPriority;
+}): Promise<void> {
+  try {
+    const token = await getAuthToken();
+    await apiPost("/api/notifications/admin-alert-rules", input, { token });
+    revalidatePath("/admin/notifications/admin-alerts");
+  } catch (error) {
+    console.error("Error creating admin alert rule:", error);
+    captureError(error);
+    throw error;
+  }
+}
