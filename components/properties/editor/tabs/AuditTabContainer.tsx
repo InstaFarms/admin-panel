@@ -34,6 +34,7 @@ export default function AuditTabContainer({}: AuditTabContainerProps) {
         onAddItem={services.handleAddChecklistItem}
         onUpdateItem={services.handleUpdateChecklistItem}
         onRemoveItem={services.handleRemoveChecklistItem}
+        onApplyTemplate={services.isEditMode ? services.handleApplyAuditTemplate : undefined}
       />
     </div>
   );

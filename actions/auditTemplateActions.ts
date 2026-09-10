@@ -46,3 +46,14 @@ export async function deleteAuditTemplate(id: string) {
   revalidatePath(path);
   return result;
 }
+
+// Copies a template's areas + checklist items onto a property. The API inserts
+// fresh rows and stores no pointer back to the template, so later edits to the
+// master template never change an already-configured property.
+export async function applyAuditTemplate(propertyId: string, templateId?: string) {
+  const result = await withTemplateApi<any>((token) =>
+    apiPost("/api/audit-properties/templates/apply", { propertyId, templateId }, { token })
+  );
+  revalidatePath(`/admin/properties/${propertyId}`);
+  return result;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { HiPlus, HiTrash, HiPencil } from "react-icons/hi";
+import { HiPlus, HiTrash, HiPencil, HiClipboardList } from "react-icons/hi";
 
 import { Accordion, AccordionPanel, AccordionTitle, AccordionContent, Button, Tabs, TabItem, Spinner } from "flowbite-react";
 
@@ -10,6 +10,7 @@ import { AuditArea } from "@/utils/types";
 
 import SectionHeading from "@/components/properties/SectionHeading";
 import AddAuditAreaModal from "@/components/properties/modals/AddAuditAreaModal";
+import ApplyAuditTemplateModal from "@/components/properties/modals/ApplyAuditTemplateModal";
 import AddChecklistItemModal from "@/components/properties/modals/AddChecklistItemModal";
 
 interface AuditAreasSectionProps {
@@ -24,6 +25,7 @@ interface AuditAreasSectionProps {
     onAddItem: (areaId: string, type: "INVENTORY" | "SUPPLIES" | "MAINTENANCE", data: any) => Promise<boolean>;
     onUpdateItem: (type: "INVENTORY" | "SUPPLIES" | "MAINTENANCE", id: string, data: any) => Promise<boolean>;
     onRemoveItem: (type: "INVENTORY" | "SUPPLIES" | "MAINTENANCE", id: string) => Promise<boolean>;
+    onApplyTemplate?: (templateId?: string) => Promise<boolean>;
 }
 
 export default function AuditAreasSection({
@@ -38,8 +40,10 @@ export default function AuditAreasSection({
     onAddItem,
     onUpdateItem,
     onRemoveItem,
+    onApplyTemplate,
 }: AuditAreasSectionProps) {
     const [showAddAreaModal, setShowAddAreaModal] = useState(false);
+    const [showApplyTemplateModal, setShowApplyTemplateModal] = useState(false);
     const [loadingAreasOnDemand, setLoadingAreasOnDemand] = useState(false);
 
     const handleAddAreaClick = async () => {
@@ -47,6 +51,16 @@ export default function AuditAreasSection({
         try {
             await onEnsureAreasLoaded();
             setShowAddAreaModal(true);
+        } finally {
+            setLoadingAreasOnDemand(false);
+        }
+    };
+
+    const handleApplyTemplateClick = async () => {
+        setLoadingAreasOnDemand(true);
+        try {
+            await onEnsureAreasLoaded();
+            setShowApplyTemplateModal(true);
         } finally {
             setLoadingAreasOnDemand(false);
         }
@@ -69,6 +83,17 @@ export default function AuditAreasSection({
                     description="Configure property audit areas and checklist items to maintain quality and standards."
                 />
                 <div className="flex items-center gap-2">
+                    {onApplyTemplate && (
+                        <Button
+                            color="light"
+                            size="sm"
+                            onClick={handleApplyTemplateClick}
+                            disabled={loadingAreasOnDemand}
+                        >
+                            <HiClipboardList className="mr-2 h-4 w-4" />
+                            Apply Template
+                        </Button>
+                    )}
                     <Button
                         color="dark"
                         size="sm"
@@ -157,6 +182,14 @@ export default function AuditAreasSection({
                     return res;
                 }}
             />
+
+            {onApplyTemplate && (
+                <ApplyAuditTemplateModal
+                    show={showApplyTemplateModal}
+                    onClose={() => setShowApplyTemplateModal(false)}
+                    onApply={onApplyTemplate}
+                />
+            )}
         </div>
     );
 }

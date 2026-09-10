@@ -24,6 +24,7 @@ import {
   getAuditAreas,
   updateAuditChecklistItem,
 } from "@/actions/auditActions";
+import { applyAuditTemplate } from "@/actions/auditTemplateActions";
 
 interface AuditAreaDraft {
   id: string;
@@ -249,6 +250,39 @@ export function usePropertyServices(propertyId?: string | null) {
     await loadAuditAreas();
   }, [auditAreasLoaded, auditAreasLoading, loadAuditAreas]);
 
+  const handleApplyAuditTemplate = async (templateId?: string) => {
+    if (!propertyId) {
+      toast.error("Save the property first, then apply a template.");
+      return false;
+    }
+    if (unsavedAuditAreas.length > 0 || unsavedAuditItems.length > 0) {
+      toast.error("Save your queued audit changes first, then apply a template.");
+      return false;
+    }
+    setAuditAreasLoading(true);
+    try {
+      const result = await applyAuditTemplate(propertyId, templateId);
+      if (!result?.success) {
+        toast.error(result?.message || "Failed to apply template");
+        return false;
+      }
+      const createdAreas: { itemCount?: number }[] = result.data?.createdAreas ?? [];
+      const checkpoints = createdAreas.reduce(
+        (sum, area) => sum + Number(area.itemCount ?? 0),
+        0,
+      );
+      toast.success(
+        createdAreas.length > 0
+          ? `Added ${createdAreas.length} area(s) and ${checkpoints} checklist item(s).`
+          : "Those areas already exist on this property — nothing changed.",
+      );
+      await loadAuditAreas();
+      return true;
+    } finally {
+      setAuditAreasLoading(false);
+    }
+  };
+
   const handleAddAuditArea = async (data: {
     categoryId: string;
     name: string;
@@ -454,6 +488,7 @@ export function usePropertyServices(propertyId?: string | null) {
     auditAreasLoading,
     unsavedAuditItems,
     ensureAuditAreasLoaded,
+    handleApplyAuditTemplate,
     handleAddAuditArea,
     handleRemoveAuditArea,
     getAuditAreaItems: getAuditAreaItemsWrapper,
