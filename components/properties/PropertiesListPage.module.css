@@ -264,3 +264,25 @@
     width: 100%;
   }
 }
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.sortButton:hover {
+  color: var(--ink-2);
+}
+
+.sortArrowIdle {
+  opacity: 0.4;
+}

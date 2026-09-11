@@ -3,7 +3,6 @@
  * Uses parseLimitOffset / parseFilterParams for URL state; always fetches fresh data.
  */
 import { fetchPropertiesPaginated, fetchHelperData } from "@/actions/propertyActions";
-import { getAllBrands } from "@/actions/brandActions";
 import Pagination from "@/components/Pagination";
 import { getEmptyListMessage } from "@/constants/ui";
 import { parseFilterParams, parseLimitOffset } from "@/utils/server-utils";
@@ -17,6 +16,7 @@ import {
   SEARCH_KEYS,
   buildPropertiesFetchParams,
   getFirstQueryParam,
+  parseSortParams,
   type PropertiesListItem,
 } from "@/lib/propertiesListUtils";
 
@@ -27,11 +27,11 @@ export default async function Page({ searchParams }: ServerPageProps) {
   const { limit, offset } = parseLimitOffset(params);
   const filterParams = parseFilterParams(params);
   const areaId = getFirstQueryParam(params.areaId);
+  const sort = parseSortParams(params);
 
-  const [result, deletedResult, rawBrands, typesResult] = await Promise.all([
-    fetchPropertiesPaginated(buildPropertiesFetchParams({ limit, offset, filterParams, areaId })),
+  const [result, deletedResult, typesResult] = await Promise.all([
+    fetchPropertiesPaginated(buildPropertiesFetchParams({ limit, offset, filterParams, areaId, sort })),
     fetchPropertiesPaginated(buildPropertiesFetchParams({ includeDeletedOnly: true, limit: 1000, offset: 0, filterParams: null, areaId: undefined })),
-    getAllBrands(["id", "name"]),
     fetchHelperData("property-types"),
   ]);
 
@@ -51,10 +51,6 @@ export default async function Page({ searchParams }: ServerPageProps) {
   const emptyMessage = getEmptyListMessage("properties", hasSearch);
   const deletedEmptyMessage = "No deleted properties found.";
 
-  const brands = (rawBrands ?? [])
-    .filter((b: any) => b?.id && b?.name)
-    .map((b: any) => ({ id: String(b.id), name: String(b.name) }));
-
   const propertyTypes = ((typesResult.data as any[]) ?? [])
     .filter((t: any) => t?.id && t?.name)
     .map((t: any) => ({ id: String(t.id), name: String(t.name) }));
@@ -70,13 +66,13 @@ export default async function Page({ searchParams }: ServerPageProps) {
         }
         deletedProperties={deletedData}
         deletedEmptyMessage={deletedEmptyMessage}
-        brands={brands}
         propertyTypes={propertyTypes}
       />
       <PropertiesTable
         data={data}
         offset={offset}
         emptyMessage={emptyMessage}
+        sort={sort}
       />
       <Pagination />
     </div>

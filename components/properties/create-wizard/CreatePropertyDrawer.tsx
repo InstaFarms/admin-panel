@@ -5,11 +5,6 @@ import { Button } from "flowbite-react";
 import { X } from "lucide-react";
 import CreatePropertyWizard from "./CreatePropertyWizard";
 
-interface BrandOption {
-  id: string;
-  name: string;
-}
-
 interface PropertyTypeOption {
   id: string;
   name: string;
@@ -18,7 +13,6 @@ interface PropertyTypeOption {
 interface CreatePropertyDrawerProps {
   open: boolean;
   onClose: () => void;
-  brands: BrandOption[];
   propertyTypes: PropertyTypeOption[];
 }
 
@@ -27,7 +21,6 @@ const TRANSITION_MS = 320;
 export default function CreatePropertyDrawer({
   open,
   onClose,
-  brands,
   propertyTypes,
 }: CreatePropertyDrawerProps) {
   const [isVisible, setIsVisible] = useState(false);
@@ -130,7 +123,6 @@ export default function CreatePropertyDrawer({
         {/* Scrollable wizard body */}
         <div className="flex-1 overflow-y-auto">
           <CreatePropertyWizard
-            brands={brands}
             propertyTypes={propertyTypes}
             onClose={handleClose}
           />

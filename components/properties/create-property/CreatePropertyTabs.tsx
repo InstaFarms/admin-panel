@@ -150,6 +150,7 @@ export function CreatePropertyTabs({
     ...createEmptyBrandTabBundle(),
   };
 
+  const slug = propertySource as PropertySourceType;
   const getPrefix = (section: string) => `${propertySource}.${section}`;
   const detail = asRecord(activeDraftBundle.detail);
   const address = asRecord(activeDraftBundle.address);
@@ -207,7 +208,7 @@ export function CreatePropertyTabs({
             sectionData={detail}
             commercialSectionData={commercial}
             activeBrandName={propertySource}
-            commercialBrandSlug={propertySource as BrandSlug}
+            commercialBrandSlug={slug}
             onSectionChange={onSectionChange}
             fieldErrors={fieldErrors}
             codeWarning={codeWarning}
@@ -222,7 +223,7 @@ export function CreatePropertyTabs({
             <AuditTabContainer
               commercialSectionData={commercial}
               onSectionChange={onSectionChange}
-              commercialBrandSlug={propertySource as BrandSlug}
+              commercialBrandSlug={slug}
             />
           </TabContentMotion>
         ) : null}
@@ -261,7 +262,7 @@ export function CreatePropertyTabs({
               <CommercialTabContainer
                 sectionData={commercial}
                 detailSectionData={detail}
-                commercialBrandSlug={propertySource as BrandSlug}
+                commercialBrandSlug={slug}
                 propertyId={propertyId}
                 onSectionChange={onSectionChange}
               />
@@ -348,7 +349,7 @@ export function CreatePropertyTabs({
               <GallerySection
                 key={`${slug}:${detailPropertyBrandMappingId ?? "no-brand-mapping"}`}
                 propertyId={propertyId}
-                brandScope={slug === "mago" ? "mago" : "instafarms"}
+                brandScope={slug === "MAGO" ? "mago" : "instafarms"}
                 propertyBrandMappingId={detailPropertyBrandMappingId}
               />
             ) : (

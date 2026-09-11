@@ -9,19 +9,21 @@ import {
 } from "@/actions/propertyActions";
 import { toLegacyPropertySnapshot } from "@/lib/properties/fullPropertyData";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import { RxCross2 } from "react-icons/rx";
 import { HiOfficeBuilding } from "react-icons/hi";
 import { MERGE_SECTION_LABELS, MERGE_SECTION_ORDER } from "./mergeConstants";
 import BrandSelectionStep from "./components/BrandSelectionStep";
 import ChoosePrimaryStep from "./components/ChoosePrimaryStep";
+import DraftRestoreBanner from "./components/DraftRestoreBanner";
 import ConfigureMergeStep, { type MergeConfig } from "./components/ConfigureMergeStep";
 import ResolveDataStep from "./components/ResolveDataStep";
 import MergeReviewStep from "./components/MergeReviewStep";
 import StepProgress from "./components/StepProgress";
 import WizardFooter from "./components/WizardFooter";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
+import { useLocalDraft } from "./hooks/useLocalDraft";
 
 type Brand = "instafarms" | "mago";
 type PropertyItem = {
@@ -33,6 +35,20 @@ type PropertyItem = {
 };
 
 const STEPS = ["Select Brand", "Select Properties", "Choose Primary", "Configure Merge", "Resolve Data", "Review"] as const;
+
+const DRAFT_KEY = "admin:merge-property-wizard:draft";
+
+// Only the admin's own choices are persisted. normalizedById holds full
+// fetched property records — large, and stale the moment a property changes —
+// so it is deliberately left out and re-fetched on restore.
+type MergeDraft = {
+  currentStep: number;
+  brandId: Brand | "";
+  selectedIds: string[];
+  primaryId: string;
+  mergeConfig: MergeConfig;
+  winners: Record<string, string>;
+};
 
 const slugify = (s: string) =>
   (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -61,7 +77,7 @@ export default function MergePropertyWizard() {
     instafarms: [],
     mago: [],
   });
-  const [loadingProperties, setLoadingProperties] = useState(false);
+  const [loadingProperties, setLoadingProperties] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [primaryId, setPrimaryId] = useState("");
   const [mergeConfig, setMergeConfig] = useState<MergeConfig>(DEFAULT_CONFIG);
@@ -107,20 +123,66 @@ export default function MergePropertyWizard() {
 
   const winnerFor = (sec: MergeSectionKey) => winners[sec] || primaryId;
 
+  const draftValue: MergeDraft = useMemo(
+    () => ({ currentStep, brandId, selectedIds, primaryId, mergeConfig, winners }),
+    [currentStep, brandId, selectedIds, primaryId, mergeConfig, winners]
+  );
+
+  const { draft, hasDraft, dismissPrompt, clearDraft, saveNow } = useLocalDraft<MergeDraft>({
+    key: DRAFT_KEY,
+    value: draftValue,
+    // Nothing worth restoring until a brand or a constituent has been picked.
+    enabled: Boolean(brandId) || selectedIds.length > 0 || currentStep > 0,
+  });
+
+  const handleSaveDraft = () => {
+    saveNow();
+    toast.success("Draft saved on this device.");
+  };
+
+  const restoreDraft = () => {
+    const d = draft?.value;
+    if (!d) return;
+    // The constituents are the source everything else was configured against.
+    // If any has since been deactivated or deleted it will be missing from the
+    // loaded list, and applying the draft would silently merge against a
+    // property that no longer exists.
+    if (d.brandId && d.selectedIds.length > 0) {
+      const available = new Set(propertiesByBrand[d.brandId].map((p) => p.id));
+      if (!d.selectedIds.every((id) => available.has(id))) {
+        clearDraft();
+        toast.error("A property in that draft is no longer available — the draft was discarded.");
+        return;
+      }
+    }
+    skipPrimaryPrefill.current = true;
+    setBrandId(d.brandId);
+    setSelectedIds(d.selectedIds);
+    setPrimaryId(d.primaryId);
+    setMergeConfig(d.mergeConfig);
+    setWinners(d.winners);
+    setCurrentStep(d.currentStep);
+    dismissPrompt();
+    toast.success("Draft restored.");
+  };
+
   useEffect(() => {
     const load = async () => {
       setLoadingProperties(true);
-      const result = await getAllPropertiesForSelector();
-      const all = (result.data || []) as any[];
-      setPropertiesByBrand({
-        instafarms: all.filter((p) =>
-          (p.brandStatuses || []).some((b: any) => b.brandName?.toLowerCase() === "instafarms" && b.isActive)
-        ) as PropertyItem[],
-        mago: all.filter((p) =>
-          (p.brandStatuses || []).some((b: any) => b.brandName?.toLowerCase() === "mago" && b.isActive)
-        ) as PropertyItem[],
-      });
-      setLoadingProperties(false);
+      try {
+        const result = await getAllPropertiesForSelector();
+        const all = (result.data || []) as any[];
+        setPropertiesByBrand({
+          instafarms: all.filter((p) =>
+            (p.brandStatuses || []).some((b: any) => b.brandName?.toLowerCase() === "instafarms" && b.isActive)
+          ) as PropertyItem[],
+          mago: all.filter((p) =>
+            (p.brandStatuses || []).some((b: any) => b.brandName?.toLowerCase() === "mago" && b.isActive)
+          ) as PropertyItem[],
+        });
+      } finally {
+        setLoadingProperties(false);
+      }
     };
     void load();
   }, []);
@@ -174,9 +236,21 @@ export default function MergePropertyWizard() {
     setWinners({});
   };
 
+  // Set for one run only when restoring a draft: the effect below overwrites
+  // mergeConfig whenever primaryId changes, which would wipe the config the
+  // draft just put back.
+  const skipPrimaryPrefill = useRef(false);
+
   // Pre-populate configure step when primary is chosen
   useEffect(() => {
-    if (!primaryId) return;
+    if (!primaryId) {
+      skipPrimaryPrefill.current = false;
+      return;
+    }
+    if (skipPrimaryPrefill.current) {
+      skipPrimaryPrefill.current = false;
+      return;
+    }
     const p = brandProperties.find((b) => b.id === primaryId);
     if (!p) return;
     const normalized = normalizedById[primaryId];
@@ -266,6 +340,7 @@ export default function MergePropertyWizard() {
           if (result.error) { toast.error(result.error); return; }
 
           toast.success(`Merge created · ${selectedIds.length} properties merged`);
+          clearDraft();
           router.push("/admin/properties/merge-properties");
         } catch (err: any) {
           toast.error(err?.message || "Failed to create merged property.");
@@ -276,6 +351,14 @@ export default function MergePropertyWizard() {
 
   return (
     <div className="flex flex-col gap-4">
+      <DraftRestoreBanner
+        visible={hasDraft && !submitting}
+        savedAt={draft?.savedAt}
+        busy={loadingProperties}
+        onRestore={restoreDraft}
+        onDiscard={clearDraft}
+      />
+
       <StepProgress steps={STEPS} currentStep={currentStep} onStepClick={setCurrentStep} />
 
       {/* Brand chip shown on steps > 0 */}
@@ -509,7 +592,7 @@ export default function MergePropertyWizard() {
         lastStepIndex={STEPS.length - 1}
         submitting={submitting}
         onBack={goBack}
-        onSaveDraft={() => {}}
+        onSaveDraft={handleSaveDraft}
         onNext={goNext}
         onSubmit={handleSubmit}
         submitLabel="Confirm merge"

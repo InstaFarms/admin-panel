@@ -11,18 +11,12 @@ import Step2Identity from "./Step2Identity";
 import Step3Details from "./Step3Details";
 import Step4Review from "./Step4Review";
 
-interface BrandOption {
-  id: string;
-  name: string;
-}
-
 interface PropertyTypeOption {
   id: string;
   name: string;
 }
 
 interface CreatePropertyWizardProps {
-  brands: BrandOption[];
   propertyTypes: PropertyTypeOption[];
   onClose?: () => void;
 }
@@ -48,22 +42,7 @@ function derivePropertyCode(name: string): string {
     .slice(0, 30);
 }
 
-function inferPrimaryBrandId(
-  selectedBrandIds: string[],
-  brands: BrandOption[]
-): string | undefined {
-  // Prefer Instafarms as primary since API creates under INSTAFARMS_ADMIN context
-  const instafarms = brands.find(
-    (b) => b.name.toLowerCase().includes("instafarms") || b.name.toLowerCase() === "instafarms"
-  );
-  if (instafarms && selectedBrandIds.includes(instafarms.id)) {
-    return instafarms.id;
-  }
-  // Fall back to first selected brand
-  return selectedBrandIds[0];
-}
-
-export default function CreatePropertyWizard({ brands, propertyTypes, onClose }: CreatePropertyWizardProps) {
+export default function CreatePropertyWizard({ propertyTypes, onClose }: CreatePropertyWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
 
@@ -218,9 +197,6 @@ export default function CreatePropertyWizard({ brands, propertyTypes, onClose }:
     setSubmitError(null);
 
     try {
-      const primaryBrandId = inferPrimaryBrandId(selectedBrandIds, brands);
-      const additionalBrandIds = selectedBrandIds.filter((id) => id !== primaryBrandId);
-
       const selectedBrandName = quickCreateSources.find(b => b.id === selectedBrandIds[0])?.name?.toLowerCase() || "";
       let propertySource = "INSTAFARMS_EXCLUSIVE";
       if (selectedBrandName.includes("mago")) propertySource = "MAGO";
@@ -247,8 +223,6 @@ export default function CreatePropertyWizard({ brands, propertyTypes, onClose }:
                 ...(maxGuestCount > 0 ? { maxGuestCount } : {}),
               }
             : {}),
-          primaryBrandId,
-          additionalBrandIds,
           propertySource,
         }),
       });

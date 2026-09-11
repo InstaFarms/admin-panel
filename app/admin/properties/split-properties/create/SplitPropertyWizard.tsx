@@ -13,12 +13,14 @@ import { RxCross2 } from "react-icons/rx";
 import { HiOfficeBuilding } from "react-icons/hi";
 import { SPLIT_SECTION_LABELS, SPLIT_SECTION_ORDER } from "./splitConstants";
 import AssignDataStep from "./components/AssignDataStep";
+import DraftRestoreBanner from "./components/DraftRestoreBanner";
 import BrandSelectionStep from "./components/BrandSelectionStep";
 import ConfigureSplitsStep, { ChildConfig } from "./components/ConfigureSplitsStep";
 import SplitReviewStep from "./components/SplitReviewStep";
 import StepProgress from "./components/StepProgress";
 import WizardFooter from "./components/WizardFooter";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
+import { useLocalDraft } from "./hooks/useLocalDraft";
 
 type Brand = "instafarms" | "mago";
 type PropertyItem = {
@@ -30,6 +32,17 @@ type PropertyItem = {
 };
 
 const STEPS = ["Select Brand", "Select Property", "Configure Splits", "Assign Data", "Review"] as const;
+
+const DRAFT_KEY = "admin:split-property-wizard:draft";
+
+type SplitDraft = {
+  currentStep: number;
+  brandId: Brand | "";
+  parentPropertyId: string;
+  children: ChildConfig[];
+  assign: Record<string, Record<number, boolean>>;
+  assignMode: "matrix" | "bychild";
+};
 
 const COMMON_SECTION_KEYS = new Set<SplitSectionKey>([
   "ADDRESS",
@@ -75,7 +88,7 @@ export default function SplitPropertyWizard() {
     instafarms: [],
     mago: [],
   });
-  const [loadingProperties, setLoadingProperties] = useState(false);
+  const [loadingProperties, setLoadingProperties] = useState(true);
   const [parentPropertyId, setParentPropertyId] = useState("");
   const [children, setChildren] = useState<ChildConfig[]>([]);
   const [assign, setAssign] = useState<Record<string, Record<number, boolean>>>({});
@@ -110,6 +123,48 @@ export default function SplitPropertyWizard() {
 
   const brandName = brandId === "instafarms" ? "InstaFarms" : brandId === "mago" ? "Mago" : "";
 
+  const draftValue: SplitDraft = useMemo(
+    () => ({ currentStep, brandId, parentPropertyId, children, assign, assignMode }),
+    [currentStep, brandId, parentPropertyId, children, assign, assignMode]
+  );
+
+  const { draft, hasDraft, dismissPrompt, clearDraft, saveNow } = useLocalDraft<SplitDraft>({
+    key: DRAFT_KEY,
+    value: draftValue,
+    // Nothing worth restoring until a brand or a parent has been picked.
+    enabled: Boolean(brandId) || Boolean(parentPropertyId) || currentStep > 0,
+  });
+
+  const restoreDraft = () => {
+    const d = draft?.value;
+    if (!d) return;
+    // The parent property is the source everything else was configured
+    // against. If it has since been deactivated or deleted it will be missing
+    // from the loaded list, and applying the draft would silently build splits
+    // against a property that no longer exists.
+    if (d.parentPropertyId && d.brandId) {
+      const stillThere = propertiesByBrand[d.brandId].some((p) => p.id === d.parentPropertyId);
+      if (!stillThere) {
+        clearDraft();
+        toast.error("That draft's source property is no longer available — the draft was discarded.");
+        return;
+      }
+    }
+    setBrandId(d.brandId);
+    setParentPropertyId(d.parentPropertyId);
+    setChildren(d.children);
+    setAssign(d.assign);
+    setAssignMode(d.assignMode);
+    setCurrentStep(d.currentStep);
+    dismissPrompt();
+    toast.success("Draft restored.");
+  };
+
+  const handleSaveDraft = () => {
+    saveNow();
+    toast.success("Draft saved on this device.");
+  };
+
   const assignDefault = (sectionKey: string, idx: number): boolean => {
     const explicit = assign[sectionKey];
     if (explicit && explicit[idx] !== undefined) return explicit[idx];
@@ -127,17 +182,20 @@ export default function SplitPropertyWizard() {
   useEffect(() => {
     const load = async () => {
       setLoadingProperties(true);
-      const result = await getAllPropertiesForSelector();
-      const all = (result.data || []) as any[];
-      setPropertiesByBrand({
-        instafarms: all.filter((p) =>
-          (p.brandStatuses || []).some((b: any) => b.brandName?.toLowerCase() === "instafarms" && b.isActive)
-        ) as PropertyItem[],
-        mago: all.filter((p) =>
-          (p.brandStatuses || []).some((b: any) => b.brandName?.toLowerCase() === "mago" && b.isActive)
-        ) as PropertyItem[],
-      });
-      setLoadingProperties(false);
+      try {
+        const result = await getAllPropertiesForSelector();
+        const all = (result.data || []) as any[];
+        setPropertiesByBrand({
+          instafarms: all.filter((p) =>
+            (p.brandStatuses || []).some((b: any) => b.brandName?.toLowerCase() === "instafarms" && b.isActive)
+          ) as PropertyItem[],
+          mago: all.filter((p) =>
+            (p.brandStatuses || []).some((b: any) => b.brandName?.toLowerCase() === "mago" && b.isActive)
+          ) as PropertyItem[],
+        });
+      } finally {
+        setLoadingProperties(false);
+      }
     };
     void load();
   }, []);
@@ -286,6 +344,7 @@ export default function SplitPropertyWizard() {
           toast.success(
             `Split created · ${children.length} children under ${selectedParent?.propertyCode || parentPropertyId}`
           );
+          clearDraft();
           router.push("/admin/properties/split-properties");
         } catch (err: any) {
           toast.error(err?.message || "Failed to create split.");
@@ -296,6 +355,14 @@ export default function SplitPropertyWizard() {
 
   return (
     <div className="flex flex-col gap-4">
+      <DraftRestoreBanner
+        visible={hasDraft && !submitting}
+        savedAt={draft?.savedAt}
+        busy={loadingProperties}
+        onRestore={restoreDraft}
+        onDiscard={clearDraft}
+      />
+
       <StepProgress steps={STEPS} currentStep={currentStep} onStepClick={setCurrentStep} />
 
       {/* Brand chip shown on steps > 0 */}
@@ -495,7 +562,7 @@ export default function SplitPropertyWizard() {
         lastStepIndex={STEPS.length - 1}
         submitting={submitting}
         onBack={goBack}
-        onSaveDraft={() => {}}
+        onSaveDraft={handleSaveDraft}
         onNext={goNext}
         onSubmit={handleSubmit}
         submitLabel="Confirm split"

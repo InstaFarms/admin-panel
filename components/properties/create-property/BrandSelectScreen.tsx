@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { type BrandSlug } from "@/lib/properties/propertyEditorDraft";
 import { resolveBrandSlugFromName } from "@/lib/properties/brandSlug";
 import { FileText, RotateCcw } from "lucide-react";
 
@@ -14,7 +13,7 @@ interface Source {
 interface BrandSelectScreenProps {
   sources: Source[];
   onSelect: (source: { id: string; name: string }) => void;
-  resumableDraft?: { id: string; name: string; slug: BrandSlug };
+  resumableDraft?: { id: string; name: string };
   onResumeDraft?: () => void;
   onDiscardDraft?: () => void;
 }

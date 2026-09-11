@@ -11,7 +11,6 @@ import { useState } from "react";
 import type { PropertiesListItem } from "@/lib/propertiesListUtils";
 import styles from "./PropertiesListPage.module.css";
 
-interface BrandOption { id: string; name: string; }
 interface PropertyTypeOption { id: string; name: string; }
 
 interface PropertiesPageHeaderProps {
@@ -20,7 +19,6 @@ interface PropertiesPageHeaderProps {
   defaultSearchKey: string;
   deletedProperties: PropertiesListItem[];
   deletedEmptyMessage: string;
-  brands: BrandOption[];
   propertyTypes: PropertyTypeOption[];
 }
 
@@ -30,7 +28,6 @@ export default function PropertiesPageHeader({
   defaultSearchKey,
   deletedProperties,
   deletedEmptyMessage,
-  brands,
   propertyTypes,
 }: PropertiesPageHeaderProps) {
   const [deletedOpen, setDeletedOpen] = useState(false);
@@ -91,7 +88,6 @@ export default function PropertiesPageHeader({
       <CreatePropertyDrawer
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
-        brands={brands}
         propertyTypes={propertyTypes}
       />
     </>

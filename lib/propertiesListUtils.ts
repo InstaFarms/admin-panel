@@ -9,8 +9,30 @@ export const BREADCRUMBS = [
   { href: "#", label: "Properties" },
 ] as const;
 
+/** Columns the admin list can sort on. The API also accepts "weight" (its old default). */
+export const SORT_FIELDS = ["createdAt", "propertyName"] as const;
+export type PropertiesSort = {
+  orderBy: (typeof SORT_FIELDS)[number];
+  sortorder: "asc" | "desc";
+};
+/** Newest first: the admin list is a work queue, so the newest property leads page 1. */
+export const DEFAULT_SORT: PropertiesSort = { orderBy: "createdAt", sortorder: "desc" };
+
+export function parseSortParams(params: {
+  [key: string]: string | string[] | undefined;
+}): PropertiesSort {
+  const orderBy = getFirstQueryParam(params.sort);
+  const sortorder = getFirstQueryParam(params.dir);
+  if (!SORT_FIELDS.includes(orderBy as PropertiesSort["orderBy"])) return DEFAULT_SORT;
+  return {
+    orderBy: orderBy as PropertiesSort["orderBy"],
+    sortorder: sortorder === "asc" ? "asc" : "desc",
+  };
+}
+
 export type PropertiesListItem = {
   id: string;
+  createdAt?: string | null;
   propertyName?: string | null;
   name?: string | null;
   heading?: string | null;
@@ -40,6 +62,8 @@ export type PropertiesFetchParams = {
   searchKey?: string;
   areaId?: string;
   brandId?: string;
+  orderBy?: string;
+  sortorder?: "asc" | "desc";
 };
 
 export type PropertiesFilterParams = {
@@ -67,14 +91,22 @@ export function buildPropertiesFetchParams({
   offset,
   filterParams,
   areaId,
+  sort = DEFAULT_SORT,
 }: {
   includeDeletedOnly?: boolean;
   limit: number;
   offset: number;
   filterParams: PropertiesFilterParams;
   areaId?: string;
+  sort?: PropertiesSort;
 }): PropertiesFetchParams {
-  const fetchParams: PropertiesFetchParams = { limit, offset, includeDeletedOnly };
+  const fetchParams: PropertiesFetchParams = {
+    limit,
+    offset,
+    includeDeletedOnly,
+    orderBy: sort.orderBy,
+    sortorder: sort.sortorder,
+  };
 
   if (filterParams && filterParams.searchValue) {
     const mappedSearchBy =

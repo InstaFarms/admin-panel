@@ -53,8 +53,14 @@ export default function CommercialTabContainer({
     [],
   );
 
-  const commercialBrandLabel =
-    commercialBrandSlug === "mago" ? "Mago" : "Instafarms";
+  // The create-property flow passes the uppercase PropertySourceType ("MAGO"),
+  // while the existing-property edit flow passes the legacy lowercase slug ("mago").
+  // Compare case-insensitively so both flows resolve correctly — same approach as
+  // planAppTypeForBrandSlug in PlansTabContainer. Draft paths below keep the raw
+  // slug verbatim, since it is the key the draft is stored under.
+  const isMagoBrand = String(commercialBrandSlug).toUpperCase() === "MAGO";
+
+  const commercialBrandLabel = isMagoBrand ? "Mago" : "Instafarms";
 
   const updateArrayAtPath = <T,>(path: string, updater: (prev: T[]) => T[]) => {
     onSectionChange(path, (prev: T[] | undefined) =>
@@ -144,7 +150,7 @@ export default function CommercialTabContainer({
         )
       }
       isFixedLeaseModel={
-        commercialBrandSlug === "mago" && agreementModelFlags.isFixedLeaseModel
+        isMagoBrand && agreementModelFlags.isFixedLeaseModel
       }
       cookingAccessFee={
         typeof sectionData.cookingAccessFee === "number"
@@ -242,17 +248,17 @@ export default function CommercialTabContainer({
         );
       }}
       notionalRevenueConfigPanel={
-        commercialBrandSlug === "mago" && propertyId ? (
+        isMagoBrand && propertyId ? (
           <NotionalRevenueConfigSection propertyId={propertyId} />
         ) : null
       }
       sourceCommissionsPanel={
-        commercialBrandSlug === "mago" && propertyId ? (
+        isMagoBrand && propertyId ? (
           <PropertySourceCommissionsSection propertyId={propertyId} />
         ) : null
       }
       agreementMilestonePanel={
-        commercialBrandSlug === "mago" && propertyId ? (
+        isMagoBrand && propertyId ? (
           <AgreementMilestoneSection
             propertyId={propertyId}
             onAgreementModelFlagsChange={handleAgreementModelFlagsChange}
@@ -260,14 +266,14 @@ export default function CommercialTabContainer({
         ) : null
       }
       expensesPanel={
-        commercialBrandSlug === "mago" &&
+        isMagoBrand &&
         propertyId &&
         agreementModelFlags.isExpensesBasisModel ? (
           <PropertyExpenseTabsSection propertyId={propertyId} />
         ) : null
       }
       invoicePanel={
-        commercialBrandSlug === "mago" && propertyId ? (
+        isMagoBrand && propertyId ? (
           <PropertyInvoiceSection propertyId={propertyId} />
         ) : null
       }

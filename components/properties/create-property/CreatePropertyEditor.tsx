@@ -7,7 +7,9 @@ import {
   type BrandSlug,
   type BrandTabBundle,
   createEmptyBrandTabBundle,
+  PROPERTY_SOURCES,
   type PropertyEditorDraft,
+  type PropertySourceType,
 } from "@/lib/properties/propertyEditorDraft";
 import { buildPropertyUpsertPayload } from "@/components/properties/editor/buildPropertyUpsertPayload";
 import { createPropertyFromPayload } from "@/actions/propertyActions";
@@ -60,11 +62,17 @@ function saveLastSource(source: { id: string; name: string }) {
   }
 }
 
-function loadLastSource(): { id: string; name: string } | null {
+function loadLastSource(): { id: PropertySourceType; name: string } | null {
   try {
     const raw = localStorage.getItem(LAST_BRAND_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as { id: string; name: string };
+    const parsed = JSON.parse(raw) as { id?: unknown; name?: unknown };
+    // localStorage is a trust boundary: an older build stored lowercase slugs
+    // ("mago"), and the value survives across deploys. Anything that is not a
+    // current PropertySourceType is dropped rather than restored, otherwise it
+    // flows into `slug` and silently fails every source comparison downstream.
+    if (!PROPERTY_SOURCES.includes(parsed?.id as PropertySourceType)) return null;
+    return { id: parsed.id as PropertySourceType, name: String(parsed.name ?? "") };
   } catch {
     return null;
   }
@@ -338,7 +346,7 @@ export default function CreatePropertyEditor({ sources }: CreatePropertyEditorPr
 
     const payload = buildPropertyUpsertPayload({
       draft: fullDraft,
-      brandSlugs: [selectedSource.id],
+      brandSlugs: [selectedSource.id as PropertySourceType],
     }) as Record<string, unknown>;
 
     const brandNode =
@@ -521,7 +529,7 @@ export default function CreatePropertyEditor({ sources }: CreatePropertyEditorPr
         {createdPropertyId ? (
           <GallerySection
             propertyId={createdPropertyId}
-            brandScope={selectedSource.id === "mago" ? "mago" : "instafarms"}
+            brandScope={selectedSource.id === "MAGO" ? "mago" : "instafarms"}
             propertyBrandMappingId={null}
           />
         ) : (

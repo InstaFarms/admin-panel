@@ -2,7 +2,10 @@ import {
   getPropertyLocationLines,
   getPropertyDisplayName,
   type PropertiesListItem,
+  type PropertiesSort,
 } from "@/lib/propertiesListUtils";
+import { formatDate } from "@/lib/dateUtils";
+import SortableHeader from "@/components/properties/SortableHeader";
 import { resolveBrandSlugFromName } from "@/lib/properties/brandSlug";
 import PropertyBrandStatusToggle from "@/components/properties/PropertyBrandStatusToggle";
 import PropertyAuditConfigLockToggle from "@/components/properties/PropertyAuditConfigLockToggle";
@@ -16,6 +19,8 @@ interface PropertiesTableProps {
   emptyMessage: string;
   detailBasePath?: string;
   mode?: "active" | "deleted";
+  /** Current sort, from the URL. Omit to render plain, non-clickable headers. */
+  sort?: PropertiesSort;
 }
 
 const BRAND_COLUMNS = [
@@ -29,6 +34,7 @@ export default function PropertiesTable({
   emptyMessage,
   detailBasePath = "/admin/properties",
   mode = "active",
+  sort,
 }: PropertiesTableProps) {
   return (
     <div className={styles.panel}>
@@ -37,12 +43,32 @@ export default function PropertiesTable({
           <thead>
             <tr>
               <th className={styles.tableHeadCell}>Sr No</th>
-              <th className={styles.tableHeadCell}>Property Name</th>
+              <th className={styles.tableHeadCell}>
+                {sort ? (
+                  <SortableHeader field="propertyName" label="Property Name" sort={sort} />
+                ) : (
+                  "Property Name"
+                )}
+              </th>
               {mode === "active" ? (
                 <th className={styles.tableHeadCell}>Property Code Name</th>
               ) : null}
               <th className={styles.tableHeadCell}>Property Code</th>
               <th className={styles.tableHeadCell}>Location</th>
+              {mode === "active" ? (
+                <th className={styles.tableHeadCell}>
+                  {sort ? (
+                    <SortableHeader
+                      field="createdAt"
+                      label="Created"
+                      sort={sort}
+                      initialDirection="desc"
+                    />
+                  ) : (
+                    "Created"
+                  )}
+                </th>
+              ) : null}
               {mode === "active"
                 ? BRAND_COLUMNS.map((brand) => (
                     <th
@@ -111,6 +137,13 @@ export default function PropertiesTable({
                         ) : null}
                       </div>
                     </td>
+                    {mode === "active" ? (
+                      <td className={styles.tableCell}>
+                        <span className="whitespace-nowrap">
+                          {formatDate(property.createdAt)}
+                        </span>
+                      </td>
+                    ) : null}
                     {mode === "active"
                       ? BRAND_COLUMNS.map((brand) => {
                           const brandStatus =
@@ -160,7 +193,7 @@ export default function PropertiesTable({
             ) : (
               <tr>
                 <td
-                  colSpan={mode === "deleted" ? 5 : 10}
+                  colSpan={mode === "deleted" ? 5 : 11}
                   className={styles.emptyRow}
                 >
                   {emptyMessage}

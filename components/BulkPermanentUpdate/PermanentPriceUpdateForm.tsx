@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 
 import { Button, Card, Label, Select, TextInput, Checkbox, Badge } from "flowbite-react";
@@ -13,6 +13,7 @@ import { getAllPropertiesForSelector } from "@/actions/propertyActions";
 import { executePermanentBulkUpdate } from "@/actions/bulkActions";
 
 import PropertyApplicabilitySelector from "@/components/common/PropertyApplicabilitySelector";
+import ConfirmModal from "@/components/ConfirmModal";
 
 export default function PermanentPriceUpdateForm({
     brandName,
@@ -38,15 +39,33 @@ export default function PermanentPriceUpdateForm({
     const [entityIds, setEntityIds] = useState<string[]>([]);
     const [preloadedEntities, setPreloadedEntities] = useState<any[]>([]);
 
+    const [showConfirm, setShowConfirm] = useState(false);
+
+    // Read by the late-resolving preload effect below, which would otherwise
+    // close over the mode as it was at mount time.
+    const appliesToAllEntitiesRef = useRef(appliesToAllEntities);
+    appliesToAllEntitiesRef.current = appliesToAllEntities;
+
     useEffect(() => {
+        let cancelled = false;
         startTransition(() => {
             getAllPropertiesForSelector(brandName).then((res) => {
-                if (res.data) {
-                    setPreloadedEntities(res.data);
-                    setEntityIds(res.data.map((e: any) => e.id));
-                }
+                const all = res.data;
+                if (cancelled || !all) return;
+                setPreloadedEntities(all);
+                // Seed the "all properties" default ONLY while still in that
+                // mode. This fetch resolves late; without the guard it used to
+                // clobber a selection the user had already made after switching
+                // to "Specific Properties", silently widening a one-property
+                // update to the entire brand.
+                setEntityIds((prev) =>
+                    appliesToAllEntitiesRef.current ? all.map((e: any) => e.id) : prev
+                );
             });
         });
+        return () => {
+            cancelled = true;
+        };
     }, [brandName]);
 
     const handleSelectAllDays = () => {
@@ -63,7 +82,9 @@ export default function PermanentPriceUpdateForm({
         );
     };
 
-    const handleSubmit = async () => {
+    // Validate first, then confirm — this writes permanent prices across many
+    // properties with no undo beyond the log's revert action.
+    const handleRequestConfirm = () => {
         if (!operationValue) {
             toast.error(BULK_VALDIATION_MESSAGES.valueRequired);
             return;
@@ -76,6 +97,11 @@ export default function PermanentPriceUpdateForm({
             toast.error(BULK_VALDIATION_MESSAGES.entityRequired.replace(/entity/gi, "property"));
             return;
         }
+        setShowConfirm(true);
+    };
+
+    const handleSubmit = async () => {
+        setShowConfirm(false);
 
         let type, mode;
         if (operationType === "set_fixed") {
@@ -87,7 +113,17 @@ export default function PermanentPriceUpdateForm({
 
         const payload = {
             entityType: "PROPERTY",
-            propertyIds: entityIds,
+            // In "All Properties" mode send the EXCLUSIONS and let the server
+            // resolve the brand's full set. Sending the enumerated entityIds
+            // instead would silently cap the update at the selector's single
+            // fetched page (perPage: 1000).
+            ...(appliesToAllEntities
+                ? {
+                      excludePropertyIds: preloadedEntities
+                          .map((e: any) => e.id)
+                          .filter((id: string) => !entityIds.includes(id)),
+                  }
+                : { propertyIds: entityIds }),
             isAppliedToAll: appliesToAllEntities,
             brandId,
             applicableDays,
@@ -195,13 +231,50 @@ export default function PermanentPriceUpdateForm({
             <div className="flex justify-end mt-4">
                 <Button
                     color="blue"
-                    onClick={handleSubmit}
+                    onClick={handleRequestConfirm}
                     disabled={loading}
                     className="px-8"
                 >
                     {loading ? "Executing..." : "Apply Permanent Changes"}
                 </Button>
             </div>
+
+            <ConfirmModal
+                showModal={showConfirm}
+                tone="danger"
+                title="Apply permanent price changes?"
+                confirmLabel="Apply Permanent Changes"
+                loadingLabel="Executing..."
+                loading={loading}
+                acceptCallback={handleSubmit}
+                closeCallback={() => setShowConfirm(false)}
+                confirmationText={
+                    <>
+                        <span className="font-semibold">
+                            {OPERATION_TYPES.find((o) => o.value === operationType)?.label}
+                        </span>{" "}
+                        of <span className="font-semibold">{operationValue || 0}</span> will be
+                        applied to{" "}
+                        <span className="font-semibold">
+                            {applicableDays.length === DAYS_OF_WEEK.length
+                                ? "every day"
+                                : `${applicableDays.length} day(s)`}
+                        </span>{" "}
+                        across{" "}
+                        <span className="font-semibold">
+                            {appliesToAllEntities
+                                ? `ALL ${brandName ?? ""} properties${
+                                      preloadedEntities.length - entityIds.length > 0
+                                          ? ` except ${preloadedEntities.length - entityIds.length}`
+                                          : ""
+                                  }`
+                                : `${entityIds.length} selected propert${entityIds.length === 1 ? "y" : "ies"}`}
+                        </span>
+                        . This changes stored prices permanently — it can only be undone from the
+                        logs list.
+                    </>
+                }
+            />
         </div>
     );
 }

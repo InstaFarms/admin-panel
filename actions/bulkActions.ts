@@ -60,6 +60,13 @@ export async function fetchBulkLogs(brandId?: string) {
     }
 }
 
+/**
+ * Deletes the bulkUpdateLogs AUDIT ROW ONLY — the backend never touches
+ * specialDates, so applied prices are left exactly as they are. Any UI built on
+ * this must not claim otherwise; the previous caller (DeleteBulkLogButton) warned
+ * that deleting "will permanently remove all associated price overrides ... and
+ * prices will revert", which was never true, and was removed along with it.
+ */
 export async function deleteBulkLog(id: string) {
     const token = await getToken();
     try {

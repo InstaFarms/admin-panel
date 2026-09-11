@@ -1724,6 +1724,8 @@ export const fetchPropertiesPaginated = async (params: {
   searchKey?: string;
   areaId?: string;
   brandId?: string;
+  orderBy?: string;
+  sortorder?: "asc" | "desc";
 }): Promise<ServerSearchResult<any[]>> => {
   try {
     const token = await getAuthToken();
@@ -1731,13 +1733,16 @@ export const fetchPropertiesPaginated = async (params: {
       return { error: "Unauthorized - No token found" };
     }
 
-    const { includeDeletedOnly = false, limit, offset, searchBy, searchKey, areaId, brandId } = params;
+    const { includeDeletedOnly = false, limit, offset, searchBy, searchKey, areaId, brandId, orderBy, sortorder } = params;
 
     const payload: any = {
       includeDeletedOnly,
       perPage: limit,
       pageNumber: Math.floor(offset / limit) + 1,
     };
+
+    if (orderBy) payload.orderBy = orderBy;
+    if (sortorder) payload.sortorder = sortorder;
 
     if (searchBy && searchKey) {
       payload.searchBy = searchBy;
