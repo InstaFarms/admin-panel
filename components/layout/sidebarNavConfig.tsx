@@ -1142,6 +1142,7 @@ export const SIDEBAR_NAV_GROUP_3: SidebarNavEntry[] = [
 export const SIDEBAR_NAV_SECTIONS: {
   entries: SidebarNavEntry[];
   approvalCount?: number;
+  elivaasCount?: number;
 }[] = [
   { entries: SIDEBAR_NAV },
   { entries: SIDEBAR_NAV_GROUP_2 },

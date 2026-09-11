@@ -49,10 +49,23 @@ function formatDate(dateStr: string | null) {
   return formatAdminDateTimeLong(dateStr);
 }
 
-function formatRecipients(recipients: Array<{ id: string; type: string }> | null) {
-  if (!recipients || recipients.length === 0) return "N/A";
+/**
+ * Recipients come out of a JSONB log column, so their shape is whatever was
+ * written at the time — not something this page can rely on. The previous
+ * version did recipients[0].id.substring(0, 8) unguarded, so a single row whose
+ * recipient carried no `id` threw a TypeError and took the WHOLE Event Log page
+ * down to an error boundary. A log viewer crashing on the shape of a log entry
+ * is the one thing it must not do.
+ */
+function formatRecipients(
+  recipients: Array<{ id?: string; type?: string }> | null | undefined
+) {
+  if (!Array.isArray(recipients) || recipients.length === 0) return "N/A";
   if (recipients.length === 1) {
-    return `${recipients[0].type} (${recipients[0].id.substring(0, 8)}...)`;
+    const only = recipients[0] ?? {};
+    const label = only.type ?? "Recipient";
+    const id = typeof only.id === "string" ? only.id : null;
+    return id ? `${label} (${id.substring(0, 8)}...)` : label;
   }
   return `${recipients.length} recipients`;
 }

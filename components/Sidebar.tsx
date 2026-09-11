@@ -165,10 +165,20 @@ export default function AdminSidebar({ approvalCount, elivaasCount, permissions 
         : filterNavEntriesByPermissions(section.entries, allowedPermissionKeys),
   }));
 
-  const sectionsWithApproval = filteredSections.map((section, index) => ({
+  // Both counts go to EVERY section, and each group's customLabel takes only the
+  // one it needs.
+  //
+  // These used to be handed to section index 0 alone. That happened to work for
+  // approvalCount, because Booking Management lives in SIDEBAR_NAV — but the
+  // Elivaas group is in SIDEBAR_NAV_GROUP_3, section index 2, so elivaasCount
+  // arrived as undefined and its cancel-count badge never rendered at all, no
+  // matter how many cancellations were awaiting a decision. Passing both to
+  // every section also means moving a group between sections cannot silently
+  // switch its badge off again.
+  const sectionsWithApproval = filteredSections.map((section) => ({
     ...section,
-    approvalCount: index === 0 ? approvalCount : undefined,
-    elivaasCount:  index === 0 ? elivaasCount  : undefined,
+    approvalCount,
+    elivaasCount,
   })).filter((section) => section.entries.length > 0);
 
   if (!mounted) {
