@@ -274,14 +274,21 @@ export const createCarousel = async (
             }
         }
 
+        // subHeading and slug are OPTIONAL in this form, and parseString turns
+        // an empty field into null — but the API types both as `string`, so
+        // sending null fails the whole create with
+        // "Validation Error: subHeading: Expected string, received null".
+        // In other words a carousel item could not be created at all unless
+        // the user happened to fill two fields the form never asked for.
+        // Omit the keys instead; absent is what "not provided" means here.
         const insertData = {
             heading,
-            subHeading,
             weight,
-            slug,
             bannerUrl,
             mobBannerUrl,
             type,
+            ...(subHeading ? { subHeading } : {}),
+            ...(slug ? { slug } : {}),
         };
 
         await apiPost("/api/carousel", insertData, {
