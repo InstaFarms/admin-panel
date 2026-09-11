@@ -84,8 +84,13 @@ export default async function Page({ searchParams }: ServerPageProps) {
 
             <div className="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg mb-4">
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                <strong>Note:</strong> Settlements are automatically processed daily at 6 AM for bookings where check-in was yesterday.
-                You can manually settle or block settlements from this page.
+                {/* if-api server.ts registers this job on a ten-minute cron, not once a day
+                    at 6 AM as this note used to claim. It settles every PENDING settlement
+                    whose owner has settlement enabled; a booking is actually paid out only
+                    once its owner-wallet hold is released, per that property's release timing. */}
+                <strong>Note:</strong> Settlements are processed automatically every 10 minutes.
+                A booking is paid out once its owner-wallet hold is released, so one may stay
+                pending here until then. You can manually settle or block settlements from this page.
               </p>
             </div>
           </div>
