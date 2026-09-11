@@ -232,7 +232,14 @@ function EvidenceFields({
   );
 
   return (
-    <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+    // idPrefix also names the container, not just the per-kind min-count
+    // inputs. Two editors can be on screen at once — the create form and a
+    // DRAFT row's inline editor — and without an addressable root there is no
+    // way to tell their identically-labelled controls apart.
+    <div
+      id={idPrefix}
+      className="rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+    >
       <p className="text-sm font-medium text-gray-900 dark:text-white">
         Evidence required
       </p>
@@ -305,7 +312,14 @@ function EvidenceFields({
       </label>
 
       {value.gpsRequired ? (
-        <div className="ml-6 mt-2 rounded-lg bg-gray-50 p-2 dark:bg-gray-900/40">
+        // Addressable on its own: this block's per-kind labels read "Photos",
+        // "Videos" etc. — exactly the same text as the min-count labels above,
+        // which belong to NUMBER inputs. Without a handle here there is no way
+        // to target the GPS checkboxes rather than the count fields.
+        <div
+          id={`${idPrefix}-gps-kinds`}
+          className="ml-6 mt-2 rounded-lg bg-gray-50 p-2 dark:bg-gray-900/40"
+        >
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {EVIDENCE_HINTS.gpsKinds}
           </p>
