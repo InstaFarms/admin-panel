@@ -35,6 +35,7 @@ export default function DeleteBlockingReasonButton({ id }: { id: string }) {
     <>
       <button
         type="button"
+        aria-label="Delete blocking reason"
         onClick={() => setShowModal(true)}
         className="rounded-md bg-red-500 p-1 text-white transition-colors hover:bg-red-600"
         title="Delete"

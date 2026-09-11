@@ -40,7 +40,11 @@ export default function DeleteCancellationPlanButton({
 
   return (
     <>
-      <button onClick={() => setShowModal(true)} className="w-fit">
+      <button
+        aria-label="Delete cancellation plan"
+        onClick={() => setShowModal(true)}
+        className="w-fit"
+      >
         <div className="rounded-md bg-red-600 p-1">
           {loading ? (
             <Spinner size="sm" className="me-3" light />

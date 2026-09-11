@@ -35,6 +35,7 @@ export default function DeleteExpenseCategoryButton({ id }: { id: string }) {
     <>
       <button
         type="button"
+        aria-label="Delete expense category"
         onClick={() => setShowModal(true)}
         className="rounded-md bg-red-500 p-1 text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-70"
         title="Delete"

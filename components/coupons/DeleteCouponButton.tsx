@@ -39,7 +39,11 @@ export default function DeleteCouponButton({ id }: { id: string }) {
 
     return (
         <>
-            <button onClick={() => setShowModal(true)} className="w-fit">
+            <button
+        aria-label="Delete coupon"
+        onClick={() => setShowModal(true)}
+        className="w-fit"
+      >
                 <div className="rounded-md bg-red-600 p-1">
                     {loading ? (
                         <Spinner size="sm" className="me-3" light />
