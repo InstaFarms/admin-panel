@@ -1499,14 +1499,60 @@ export async function generateInstanceNow(input: {
     if (!operationCode)
       return { error: OPS_CONFIG_ERRORS.operationCodeRequired };
 
-    const data = await opsPost<unknown>("/api/ops/instances", {
+    const data = await opsPost<{
+      requested?: number;
+      created?: number;
+      duplicate?: number;
+      error?: number;
+    }>("/api/ops/instances", {
       propertyId: input.propertyId,
       operationCode,
       requestId: crypto.randomUUID(),
       ...(input.dueAt ? { dueAt: input.dueAt } : {}),
     });
     revalidateOpsConfig();
-    return { success: OPS_CONFIG_SUCCESS.instanceGenerated, data };
+
+    // Report what ACTUALLY happened. This used to return the success message
+    // unconditionally without ever reading `data`, so a run that created
+    // nothing — the common case on a property with no CARETAKER, where the
+    // engine records a NO_EXECUTOR_RESOLVABLE generation error instead — still
+    // said "Operation instance generated." On a screen whose own header calls
+    // it the honesty panel, that is the one message that must not lie.
+    //
+    // created: 0 is deliberately NOT treated as a blanket failure: an
+    // idempotent re-press legitimately creates nothing, which is why
+    // generateManual now reports duplicates separately from errors.
+    const requested = data?.requested ?? 0;
+    const created = data?.created ?? 0;
+    const duplicate = data?.duplicate ?? 0;
+    const failed = data?.error ?? 0;
+
+    if (created === 0 && failed > 0) {
+      return {
+        error:
+          `No instance was created (0 of ${requested}). The engine recorded a generation error — ` +
+          `see the list below. The usual cause is that no EXECUTOR can be resolved: the property ` +
+          `has no CARETAKER in its staff assignments.`,
+      };
+    }
+    if (created === 0 && duplicate > 0) {
+      return {
+        success: `Already generated — ${duplicate} instance${duplicate === 1 ? "" : "s"} already exist${duplicate === 1 ? "s" : ""} for this request.`,
+        data,
+      };
+    }
+    if (created === 0) {
+      return {
+        error: `Nothing was generated — this operation fans out to no targets at this property.`,
+      };
+    }
+    if (created < requested) {
+      return {
+        success: `Generated ${created} of ${requested}; ${failed} failed — see the generation errors below.`,
+        data,
+      };
+    }
+    return { success: `${OPS_CONFIG_SUCCESS.instanceGenerated} (${created})`, data };
   } catch (err) {
     captureError(err);
     return { error: parseError(err, "Failed to generate instance.") };
