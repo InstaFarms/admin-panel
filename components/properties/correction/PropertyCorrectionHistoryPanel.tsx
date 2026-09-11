@@ -12,6 +12,23 @@ import {
 
 import { JarvisLoader } from "@/components/JarvisLogo";
 import { getPropertyCorrectionHistory } from "@/actions/propertyCorrectionActions";
+import { formatAdminDateTime } from "@/lib/dateUtils";
+
+/**
+ * The admin who ran the correction, as a reviewer can read it.
+ *
+ * Older batches, and batches whose admin has since been removed, carry no
+ * joined admin — those say so plainly rather than rendering a blank cell that
+ * looks like a rendering bug.
+ */
+function correctedByLabel(correctedBy: any) {
+  if (!correctedBy) return "Unknown";
+  const name = [correctedBy.firstName, correctedBy.lastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  return name || correctedBy.email || "Unknown";
+}
 
 function statusColor(status: string) {
   if (status === "APPLIED") return "success";
@@ -63,7 +80,8 @@ export default function PropertyCorrectionHistoryPanel({
       <Table>
         <TableHead>
           <TableRow>
-            <TableHeadCell>Created</TableHeadCell>
+            <TableHeadCell>Corrected At</TableHeadCell>
+            <TableHeadCell>Corrected By</TableHeadCell>
             <TableHeadCell>Type</TableHeadCell>
             <TableHeadCell>Range</TableHeadCell>
             <TableHeadCell>Status</TableHeadCell>
@@ -74,7 +92,13 @@ export default function PropertyCorrectionHistoryPanel({
         <TableBody className="divide-y">
           {batches.map((batch) => (
             <TableRow key={batch.id}>
-              <TableCell>{batch.createdAt?.slice?.(0, 10) ?? "-"}</TableCell>
+              {/* Date AND time: two corrections to the same property on the same
+                  day are common while an error is being chased, and a date alone
+                  cannot tell them apart or put them in order. */}
+              <TableCell className="whitespace-nowrap">
+                {formatAdminDateTime(batch.createdAt, "-")}
+              </TableCell>
+              <TableCell>{correctedByLabel(batch.correctedBy)}</TableCell>
               <TableCell>{batch.batchType}</TableCell>
               <TableCell>
                 {batch.rangeStart} - {batch.rangeEnd}
@@ -93,7 +117,7 @@ export default function PropertyCorrectionHistoryPanel({
           ))}
           {batches.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center">
+              <TableCell colSpan={7} className="text-center">
                 No correction batches found.
               </TableCell>
             </TableRow>
