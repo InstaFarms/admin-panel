@@ -512,9 +512,16 @@ function PropertyCancellationPolicySection({
 
 function BookingRefundPreviewSection({
   preview,
+  policyPreview,
+  overridesPolicy,
   amountPaid,
 }: {
+  /** What an admin cancellation from this screen will actually pay out. */
   preview: CancellationPreview;
+  /** The property-policy figure, used only to name the tier that would apply. */
+  policyPreview?: CancellationPreview;
+  /** True when the two disagree, i.e. the admin action ignores the policy. */
+  overridesPolicy?: boolean;
   amountPaid: number;
 }) {
   if (!preview) {
@@ -528,17 +535,23 @@ function BookingRefundPreviewSection({
     );
   }
 
-  const appliedRule = preview.applied_rule;
+  // The tier and policy name come from the POLICY preview: an admin
+  // cancellation resolves no policy at all, so reading them off `preview` would
+  // always render "No matching tier found".
+  const policySource = policyPreview ?? preview;
+  const appliedRule = policySource.applied_rule;
   const planType = String(
     appliedRule?.planType ||
-      (typeof preview.policy_snapshot === "object" && preview.policy_snapshot
-        ? (preview.policy_snapshot as { planType?: string | null }).planType
+      (typeof policySource.policy_snapshot === "object" &&
+      policySource.policy_snapshot
+        ? (policySource.policy_snapshot as { planType?: string | null }).planType
         : "") ||
       "",
   ).toLowerCase();
   const planName =
-    typeof preview.policy_snapshot === "object" && preview.policy_snapshot
-      ? ((preview.policy_snapshot as { name?: string | null }).name ??
+    typeof policySource.policy_snapshot === "object" &&
+    policySource.policy_snapshot
+      ? ((policySource.policy_snapshot as { name?: string | null }).name ??
         "Assigned policy")
       : "Assigned policy";
   const ruleLabel = appliedRule
@@ -590,7 +603,11 @@ function BookingRefundPreviewSection({
   return (
     <DetailSection
       title="Refund preview"
-      subtitle="What the customer is expected to receive if the booking is cancelled right now."
+      subtitle={
+        overridesPolicy
+          ? "What the customer will receive if YOU cancel this booking now. An admin cancellation refunds the full amount paid — the policy tier below does not apply to it."
+          : "What the customer is expected to receive if the booking is cancelled right now."
+      }
     >
       <div className="space-y-5">
         <div className="overflow-hidden rounded-[28px] border border-emerald-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_24%),linear-gradient(135deg,_#ffffff_0%,_#f0fdf4_42%,_#ecfdf5_100%)] p-6 shadow-sm dark:border-emerald-900/40 dark:bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.24),_transparent_22%),linear-gradient(135deg,_rgba(6,78,59,0.36)_0%,_rgba(15,23,42,0.96)_48%,_rgba(15,23,42,0.98)_100%)]">
@@ -1009,6 +1026,8 @@ function PreCancellationDashboard({
   bookingId,
   bookingData,
   preview,
+  policyPreview,
+  overridesPolicy,
   amountPaid,
   remainingAmount,
   canUseNormalCancellationFlow,
@@ -1021,7 +1040,12 @@ function PreCancellationDashboard({
 }: {
   bookingId: string;
   bookingData: GenericFinanceRow | null | undefined;
+  /** What an admin cancellation from this screen will actually pay out. */
   preview: CancellationPreview;
+  /** The property-policy figure, for naming the tier that would have applied. */
+  policyPreview?: CancellationPreview;
+  /** True when the admin action ignores the policy. */
+  overridesPolicy?: boolean;
   amountPaid: number;
   remainingAmount: number;
   canUseNormalCancellationFlow: boolean;
@@ -1032,9 +1056,14 @@ function PreCancellationDashboard({
   onCancelCash: () => void;
   onCancelRazorpay: () => void;
 }) {
-  const appliedPolicyId = String(preview?.policy_id || "").trim();
+  // Policy identity comes from the POLICY preview — an admin cancellation
+  // resolves no policy, so reading it off `preview` would leave the timeline blank.
+  const policySource = policyPreview ?? preview;
+  const appliedPolicyId = String(policySource?.policy_id || "").trim();
   const appliedPlanType = String(
-    preview?.applied_rule?.planType || preview?.policy_snapshot?.planType || "",
+    policySource?.applied_rule?.planType ||
+      policySource?.policy_snapshot?.planType ||
+      "",
   ).toLowerCase();
   const policy =
     propertyCancellationPlans.find((plan) => {
@@ -1051,7 +1080,7 @@ function PreCancellationDashboard({
     null;
   const policyName = policy?.cancellationPlan?.name || "Assigned policy";
   const policyType = String(
-    policy?.type || preview?.applied_rule?.planType || "",
+    policy?.type || policySource?.applied_rule?.planType || "",
   ).toUpperCase();
   const refundAmount = Number(preview?.refund_amount ?? 0);
   const deductions = Number(preview?.total_deductions ?? 0);
@@ -1060,6 +1089,17 @@ function PreCancellationDashboard({
   const refundRatio =
     amountPaid > 0
       ? Math.max(0, Math.min(100, (refundAmount / amountPaid) * 100))
+      : 0;
+  /** What the property policy alone would have returned, for the contrast note. */
+  const policyRefundRatio =
+    amountPaid > 0
+      ? Math.max(
+          0,
+          Math.min(
+            100,
+            (Number(policySource?.refund_amount ?? 0) / amountPaid) * 100,
+          ),
+        )
       : 0;
   const guestShare = refundAmount;
   const ownerShare = ownerRetainedEstimate;
@@ -1214,6 +1254,17 @@ function PreCancellationDashboard({
                 <div className="mt-2 text-sm tracking-[0.16em] text-slate-400 uppercase">
                   Returned to guest
                 </div>
+                {/* The headline is what an ADMIN cancellation pays, which ignores
+                    the policy. Without saying so, the policy timeline below reads
+                    as a contradiction of the number above it. */}
+                {overridesPolicy ? (
+                  <div className="mt-3 max-w-sm rounded-[12px] border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-5 text-amber-200">
+                    Cancelling from this screen is an <strong>admin cancellation</strong>,
+                    which refunds the full amount paid. The policy tier below would
+                    have returned {Math.round(policyRefundRatio)}% — it does not
+                    apply here.
+                  </div>
+                ) : null}
               </div>
               <div className="grid flex-1 grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="rounded-[15px] border border-slate-800 bg-slate-950/35 p-4">
@@ -2381,6 +2432,24 @@ export default function BookingEditor({ bookingId }: BookingEditorProps) {
     : (hookData.bookingData?.cancellation ?? null);
   const cancellationPreview = (hookData.relatedData?.cancellationPreview ??
     null) as CancellationPreview;
+  /**
+   * What the Cancel button on THIS screen will actually pay the guest.
+   *
+   * An admin cancellation refunds the full amount paid regardless of the
+   * property policy (calculateRefundAmount short-circuits for an ADMIN actor),
+   * so cancellationPreview — the CUSTOMER-policy figure — is the wrong number to
+   * headline here: the screen used to show "0% returned to guest" and then
+   * refund 100%. The policy figure stays for the timeline and the applied rule;
+   * the money shown to the admin now comes from this one.
+   */
+  const adminCancellationPreview = (hookData.relatedData
+    ?.adminCancellationPreview ?? null) as CancellationPreview;
+  /** The admin action and the policy disagree — say so where the number is shown. */
+  const adminRefundOverridesPolicy =
+    !!adminCancellationPreview &&
+    !!cancellationPreview &&
+    Number(adminCancellationPreview.refund_amount ?? 0) !==
+      Number(cancellationPreview.refund_amount ?? 0);
   const ownerCancellationSummary = (hookData.relatedData
     ?.ownerCancellationSummary ?? null) as OwnerCancellationSummary;
   const propertyCancellationPlans = Array.isArray(
@@ -3919,7 +3988,9 @@ export default function BookingEditor({ bookingId }: BookingEditorProps) {
                 </p>
               </div>
               <BookingRefundPreviewSection
-                preview={cancellationPreview}
+                preview={adminCancellationPreview ?? cancellationPreview}
+                policyPreview={cancellationPreview}
+                overridesPolicy={adminRefundOverridesPolicy}
                 amountPaid={amountPaid}
               />
               <PropertyCancellationPolicySection
@@ -3937,7 +4008,9 @@ export default function BookingEditor({ bookingId }: BookingEditorProps) {
               <PreCancellationDashboard
                 bookingId={bookingId}
                 bookingData={hookData.bookingData as GenericFinanceRow}
-                preview={cancellationPreview}
+                preview={adminCancellationPreview ?? cancellationPreview}
+                policyPreview={cancellationPreview}
+                overridesPolicy={adminRefundOverridesPolicy}
                 amountPaid={amountPaid}
                 remainingAmount={remainingAmount}
                 canUseNormalCancellationFlow={canUseNormalCancellationFlow}
