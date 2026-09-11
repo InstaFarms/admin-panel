@@ -42,6 +42,46 @@ const validateDays = (value: number | string): string | null => {
   return null;
 };
 
+/**
+ * Days this policy leaves uncovered between its two directions.
+ *
+ * Tiers match with STRICT inequalities (selectCancellationRule), so "more than
+ * 7" and "fewer than 7" BOTH exclude day 7. Two tiers that look like they meet
+ * at a boundary actually leave that day matching nothing, and a cancellation
+ * exactly then is refunded 0% silently — not the 50% or 100% either tier reads
+ * as. That is the trap this catches.
+ *
+ * A day D is covered when some tier matches it: `lessThan` with days > D, or
+ * "more than" with days < D. So the whole covered set is
+ * {D < max(lessThan days)} u {D > min(moreThan days)}, and the gap is whatever
+ * sits between them.
+ *
+ * A one-sided policy (only "more than", or only "fewer than") is NOT flagged:
+ * leaving the other end unrefunded is a normal deliberate choice, and warning
+ * about it would be noise.
+ */
+const uncoveredDays = (tiers: CancellationTier[]): number[] => {
+  const lessDays = tiers.filter((t) => t.lessThan).map((t) => Number(t.days));
+  const moreDays = tiers.filter((t) => !t.lessThan).map((t) => Number(t.days));
+  if (!lessDays.length || !moreDays.length) return [];
+  if (lessDays.some(isNaN) || moreDays.some(isNaN)) return [];
+
+  const coveredBelow = Math.max(...lessDays); // days strictly under this are covered
+  const coveredAbove = Math.min(...moreDays); // days strictly over this are covered
+  const gap: number[] = [];
+  for (let day = Math.max(0, coveredBelow); day <= coveredAbove; day += 1) {
+    gap.push(day);
+  }
+  return gap;
+};
+
+/** "day 7" / "days 5 and 6" / "days 5–9" — readable in an error message. */
+const describeDays = (days: number[]): string => {
+  if (days.length === 1) return `day ${days[0]}`;
+  if (days.length === 2) return `days ${days[0]} and ${days[1]}`;
+  return `days ${days[0]}–${days[days.length - 1]}`;
+};
+
 const validateTier = (tier: CancellationTier, index: number): Record<string, string | null> => {
   const errors: Record<string, string | null> = {};
   
@@ -110,6 +150,17 @@ export function useCancellationPlanForm(initial?: Partial<CancellationPlanFormVa
         const tierErrors = validateTier(tier, index);
         Object.assign(newErrors, tierErrors);
       });
+
+      // Only worth reporting once every tier is individually valid — a gap
+      // computed from half-typed days would move around as the operator types.
+      if (!Object.values(newErrors).some(Boolean)) {
+        const gap = uncoveredDays(cancellationTiers);
+        if (gap.length > 0) {
+          newErrors.cancellationTiers = CANCELLATION_PLANS_VALIDATION.tierGap(
+            describeDays(gap)
+          );
+        }
+      }
     }
 
     setErrors(newErrors);

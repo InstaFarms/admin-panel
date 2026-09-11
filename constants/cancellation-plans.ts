@@ -8,6 +8,17 @@ export const CANCELLATION_PLANS_VALIDATION = {
   daysRequired: "Days is required for each tier",
   daysInvalid: "Days must be a valid non-negative number",
   tierIncomplete: "Each tier must have refund percentage and days",
+  /**
+   * Tiers are matched with STRICT inequalities (selectCancellationRule in
+   * packages/services/src/cancellation-service.ts), so "more than 7" and
+   * "fewer than 7" both EXCLUDE day 7 — a guest cancelling exactly then
+   * matches no tier and is silently refunded 0%, not the amount either tier's
+   * own label implies. Takes the uncovered days as a string.
+   */
+  tierGap: (days: string) =>
+    `No tier covers ${days}. "More than" and "fewer than" both exclude the day you type, ` +
+    `so a guest cancelling then is refunded 0% with no explanation. Add a tier that covers ${days} ` +
+    `— e.g. widen one boundary by a day — or make the 0% deliberate by adding a tier for it.`,
 } as const;
 
 export const CANCELLATION_PLANS_ERRORS = {

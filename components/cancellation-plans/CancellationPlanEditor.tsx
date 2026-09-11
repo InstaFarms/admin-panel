@@ -213,8 +213,19 @@ export default function CancellationPlanEditor({
                     value={tier.lessThan.toString()}
                     onChange={(e) => updateCancellationTier(index, "lessThan", e.target.value === "true")}
                   >
-                    <option value="true">Less than</option>
-                    <option value="false">Greater than or equal</option>
+                    {/*
+                      Both conditions are STRICT, and the labels have to say so.
+                      selectCancellationRule (cancellation-service.ts) matches
+                      "lessThan" only when rule.days - daysOut > 0 and the other
+                      only when daysOut - rule.days > 0. This option used to
+                      read "Greater than or equal", which promised the boundary
+                      day was covered when it is not — an operator who paired
+                      "Less than 7" with "Greater than or equal 7" reasonably
+                      believed every day had a tier, while a guest cancelling on
+                      day 7 matched neither and was silently refunded 0%.
+                    */}
+                    <option value="true">Fewer than (excludes this day)</option>
+                    <option value="false">More than (excludes this day)</option>
                   </Select>
                 </div>
               </div>
