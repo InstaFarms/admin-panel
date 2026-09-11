@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { HiEye } from "react-icons/hi";
+import { HiDownload, HiEye } from "react-icons/hi";
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -72,10 +72,18 @@ export default function SupervisorAuditsPage() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `supervisor-audits-${new Date().toISOString().split("T")[0]}.csv`;
+        // The page number is in the filename because this exports `data` — the
+        // rows currently loaded — not the whole result set. Without it, two
+        // exports from different pages produce identically-named files and an
+        // admin has no way to tell which is which, or that either is partial.
+        link.download = `supervisor-audits-page-${pageNumber}-${new Date().toISOString().split("T")[0]}.csv`;
         link.click();
         URL.revokeObjectURL(url);
-        toast.success("CSV exported successfully");
+        // Say the scope out loud. The checklist's concern here is precisely an
+        // admin assuming they got everything.
+        toast.success(
+            `Exported ${data.length} audit${data.length === 1 ? "" : "s"} from page ${pageNumber} (this page only, not all ${totalItems}).`
+        );
     };
 
 
@@ -122,6 +130,22 @@ export default function SupervisorAuditsPage() {
                                 <option value="In Progress">In Progress</option>
                             </Select>
 
+                            {/*
+                              handleExportCSV existed but was never wired to
+                              anything, so the export was unreachable. It writes
+                              the rows currently loaded, so the control says
+                              "This Page" rather than implying a full export.
+                            */}
+                            <Button
+                                size="sm"
+                                color="light"
+                                onClick={handleExportCSV}
+                                disabled={loading || data.length === 0}
+                                title={`Downloads the ${data.length} audit(s) on this page only — not all ${totalItems}`}
+                                className="whitespace-nowrap"
+                            >
+                                <HiDownload className="mr-2 h-4 w-4" /> Export This Page
+                            </Button>
                         </div>
                     </div>
 
@@ -145,13 +169,14 @@ export default function SupervisorAuditsPage() {
                                   <TableHeadCell className="whitespace-nowrap">Supervisor</TableHeadCell>
                                   <TableHeadCell className="whitespace-nowrap">Start Time</TableHeadCell>
                                   <TableHeadCell className="whitespace-nowrap">End Time</TableHeadCell>
+                                  <TableHeadCell className="whitespace-nowrap">Status</TableHeadCell>
                                   <TableHeadCell className="whitespace-nowrap text-right">Action</TableHeadCell>
                               </TableRow>
                             </TableHead>
                             <TableBody className="divide-y">
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-10">
+                                        <TableCell colSpan={6} className="text-center py-10">
                                             <JarvisLoader size="lg" />
                                         </TableCell>
                                     </TableRow>
@@ -176,6 +201,12 @@ export default function SupervisorAuditsPage() {
                                             <TableCell className="text-gray-600 dark:text-gray-400 text-sm">
                                                 {formatDate(audit.completedAt)}
                                             </TableCell>
+                                            {/*
+                                              getStatusBadge existed but was never called — the badge was
+                                              written and never wired into the table, so a row's status was
+                                              only inferable from whether End Time happened to be blank.
+                                            */}
+                                            <TableCell>{getStatusBadge(audit)}</TableCell>
                                             <TableCell className="text-right">
                                                 <Link href={`/admin/supervisor-audits/${audit.id}`}>
                                                     <Button size="xs" color="blue" className="whitespace-nowrap">
