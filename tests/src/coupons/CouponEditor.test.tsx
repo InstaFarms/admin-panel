@@ -1,7 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { describe, it, vi, beforeEach, expect } from "vitest";
 
-import CouponEditor from "@/app/admin/coupons/[id]/CouponEditor";
+import CouponEditor from "@/components/coupons/CouponEditor";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), back: vi.fn() }),
@@ -23,7 +23,7 @@ vi.mock("@/actions/couponActions", () => ({
 vi.mock("@/hooks/useCouponForm", () => ({
   useCouponForm: () => ({
     errors: {},
-    validateAll: vi.fn(() => true),
+    validateAll: vi.fn(() => null),
     clearFieldError: vi.fn(),
   }),
 }));

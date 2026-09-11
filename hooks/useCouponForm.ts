@@ -72,6 +72,18 @@ const validateDiscount = (
 export function useCouponForm(isEdit = false) {
   const [errors, setErrors] = useState<CouponFormErrors>({});
 
+  /**
+   * Validates the whole form and returns the computed errors — null when valid.
+   *
+   * It returns the ERRORS rather than a bare boolean because the caller needs
+   * the messages, not just "did it fail". CouponEditor used to take the boolean
+   * and then read the `errors` STATE to build its toast, but that state is only
+   * written by the setErrors below, which React has not applied yet in the same
+   * tick — so the caller read the PREVIOUS render's errors. On a first submit
+   * that is `{}`, so every specific reason ("Discount percentage must be
+   * between 1 and 100") was computed and then thrown away in favour of the
+   * generic "Please fix the errors before submitting."
+   */
   const validateAll = (fields: {
     name: string;
     code: string;
@@ -87,7 +99,7 @@ export function useCouponForm(isEdit = false) {
     appliesToAllEntities: boolean;
     entityIds: string[];
     brandId: string;
-  }): boolean => {
+  }): CouponFormErrors | null => {
     const newErrors: CouponFormErrors = {
       name: validateName(fields.name),
       code: validateCode(fields.code),
@@ -110,7 +122,7 @@ export function useCouponForm(isEdit = false) {
     };
 
     setErrors(newErrors);
-    return !Object.values(newErrors).some(Boolean);
+    return Object.values(newErrors).some(Boolean) ? newErrors : null;
   };
 
   const clearFieldError = (field: keyof CouponFormErrors) => {

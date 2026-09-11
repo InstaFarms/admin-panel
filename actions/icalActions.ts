@@ -25,6 +25,27 @@ interface ICalActionResult<T = any> {
   data?: T;
 }
 
+/**
+ * Every route whose rendered content is derived from iCal connection state.
+ *
+ * The Dashboard's "iCal Connections" card is a SERVER component that reads the
+ * same GET /ical/admin/connection-status the two sub-screens read
+ * (app/admin/dashboard/page.tsx renders connectedCount / totalProperties from
+ * it), but no mutation here used to revalidate "/admin/dashboard" — adding,
+ * syncing or deleting a link revalidated only /admin/properties, and the bulk
+ * allow/stop revalidated only the two sub-screens. So the headline count stayed
+ * stale after exactly the actions that change it.
+ *
+ * Kept as one helper called by every mutation rather than a line added to each,
+ * so a future mutation cannot quietly reintroduce the same gap.
+ */
+function revalidateIcalSurfaces() {
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/dashboard/ical-connections");
+  revalidatePath("/admin/dashboard/ical-sync-controls");
+  revalidatePath("/admin/properties");
+}
+
 export interface ICalConnectionStatusRow {
   propertyId: string;
   propertyName: string;
@@ -109,7 +130,7 @@ export const addIcalLink = async (
       }
     );
 
-    revalidatePath("/admin/properties");
+    revalidateIcalSurfaces();
     return { success: "iCal link added successfully", data: response.data };
   } catch (error: any) {
     console.error("API Error: ", error);
@@ -140,7 +161,7 @@ export const syncIcalLink = async (
       }
     );
 
-    revalidatePath("/admin/properties");
+    revalidateIcalSurfaces();
     return {
       success: `Sync completed. Processed ${response.data?.eventsProcessed || 0} events.`,
       data: response.data,
@@ -170,7 +191,7 @@ export const deleteIcalLink = async (
       token,
     });
 
-    revalidatePath("/admin/properties");
+    revalidateIcalSurfaces();
     return { success: "Link deleted successfully" };
   } catch (error: any) {
     console.error("API Error: ", error);
@@ -231,8 +252,7 @@ export const bulkUpdateIcalSyncControl = async (payload: {
 
     const token = await getAuthToken();
     const response = await apiPost("/api/ical/admin/bulk-sync-control", payload, { token });
-    revalidatePath("/admin/dashboard/ical-connections");
-    revalidatePath("/admin/dashboard/ical-sync-controls");
+    revalidateIcalSurfaces();
     return { success: response.message || "Updated successfully", data: response.data };
   } catch (error: any) {
     console.error("API Error: ", error);

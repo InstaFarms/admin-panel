@@ -6,6 +6,7 @@ import {
   syncIcalLink,
   deleteIcalLink,
   getExportUrl,
+  bulkUpdateIcalSyncControl,
 } from "@/actions/icalActions";
 
 import { isAdmin } from "@/utils/admin-only";
@@ -99,6 +100,9 @@ describe("icalActions", () => {
           propertyId: "prop-1",
           name: "Airbnb",
           icalUrl: "https://example.com/ical",
+          // addIcalLink defaults roomId to null and always sends the key; the
+          // expectation here had lagged behind that and failed on the diff.
+          roomId: null,
         },
         expect.objectContaining({ token: "test-token" }),
       );
@@ -206,6 +210,40 @@ describe("icalActions", () => {
       const url = await getExportUrl("prop-1");
       expect(url).toBe("http://localhost:3001/api/ical/export/prop-1");
     });
+  });
+
+  /**
+   * QA item #15. The Dashboard's "iCal Connections" card is a server component
+   * reading the same GET /ical/admin/connection-status the sub-screens read, so
+   * every mutation that changes connection state has to revalidate
+   * "/admin/dashboard" too. None of them did: add/sync/delete revalidated only
+   * /admin/properties and the bulk allow/stop only the two sub-screens, leaving
+   * the headline count stale after exactly the actions that change it.
+   */
+  describe("dashboard revalidation (QA #15)", () => {
+    const mutations: [string, () => Promise<unknown>][] = [
+      ["addIcalLink", () => addIcalLink("prop-1", "Airbnb", "https://example.com/ical")],
+      ["syncIcalLink", () => syncIcalLink("link-1")],
+      ["deleteIcalLink", () => deleteIcalLink("link-1")],
+      [
+        "bulkUpdateIcalSyncControl",
+        () => bulkUpdateIcalSyncControl({ provider: "airbnb", allow: false, isAppliedToAll: true }),
+      ],
+    ];
+
+    for (const [name, run] of mutations) {
+      it(`${name} revalidates the Dashboard so its connected count cannot go stale`, async () => {
+        const { revalidatePath } = await import("next/cache");
+        vi.mocked(revalidatePath).mockClear();
+
+        await run();
+
+        expect(revalidatePath).toHaveBeenCalledWith("/admin/dashboard");
+        // The sub-screens render the same data and must not regress either.
+        expect(revalidatePath).toHaveBeenCalledWith("/admin/dashboard/ical-connections");
+        expect(revalidatePath).toHaveBeenCalledWith("/admin/dashboard/ical-sync-controls");
+      });
+    }
   });
 });
 

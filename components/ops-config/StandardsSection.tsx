@@ -1409,6 +1409,8 @@ export default function StandardsSection({
   propertyId: string | null;
 }) {
   const [loading, setLoading] = useState(true);
+  /** Gates the full-page spinner to the FIRST load; see the guard below. */
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [workflows, setWorkflows] = useState<OpsWorkflow[]>([]);
   const [standards, setStandards] = useState<OpsStandard[]>([]);
   const [operations, setOperations] = useState<OpsOperation[]>([]);
@@ -1430,6 +1432,7 @@ export default function StandardsSection({
       );
     } finally {
       setLoading(false);
+      setHasLoadedOnce(true);
     }
   }, [organizationId]);
 
@@ -1437,7 +1440,16 @@ export default function StandardsSection({
     void load();
   }, [load]);
 
-  if (loading) {
+  // FIRST load only. This used to be a bare `if (loading)`, which swapped the
+  // whole subtree for a spinner on EVERY refresh — and since `onChanged` is
+  // this same `load`, saving anything unmounted ProfilesCard/StandardsCard and
+  // remounted them with their local state reset. The visible symptom: create an
+  // execution profile and the "Operation" select snaps back to "— select an
+  // operation —", so the profiles table empties and the DRAFT profile you just
+  // made cannot be seen or published without re-picking the operation. Since a
+  // standard only publishes once every mapped profile is published, that
+  // stalled the whole chain. Refreshes now re-render in place.
+  if (loading && !hasLoadedOnce) {
     return (
       <div className="flex justify-center py-12">
         <JarvisLoader size="lg" />

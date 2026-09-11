@@ -16,6 +16,22 @@ describe('createCoupon Action', () => {
     const mockFetch = vi.fn();
     global.fetch = mockFetch;
 
+
+    /**
+     * A response shaped the way utils/api-utils.ts fetchAPI actually reads it:
+     * it calls response.headers.get("content-type") and response.text() — NOT
+     * response.json(). The old mocks supplied only { ok, json }, so fetchAPI
+     * threw "Cannot read properties of undefined (reading 'get')" and every
+     * assertion saw that TypeError's message instead of the real result.
+     */
+    const mockResponse = (status: number, body: unknown) => ({
+        ok: status >= 200 && status < 300,
+        status,
+        statusText: status === 200 ? 'OK' : 'Error',
+        headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'application/json' : null) },
+        text: async () => JSON.stringify(body),
+    });
+
     beforeEach(() => {
         vi.clearAllMocks();
         // Fix isAdmin mock to return object instead of boolean
@@ -29,10 +45,7 @@ describe('createCoupon Action', () => {
         vi.mocked(getApiAuthToken).mockResolvedValue('fake-token');
 
         // Default successful fetch response
-        mockFetch.mockResolvedValue({
-            ok: true,
-            json: async () => ({ success: true }),
-        });
+        mockFetch.mockResolvedValue(mockResponse(200, { success: true }));
     });
 
     afterEach(() => {
@@ -52,15 +65,19 @@ describe('createCoupon Action', () => {
         formData.append('validUntil', futureDate.toISOString());
         formData.append('isActive', 'true');
         formData.append('applicableDays', JSON.stringify(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']));
+        // Required since the brand split: createCoupon returns
+        // "Please select a brand." before ANY other validation runs
+        // (actions/couponActions.ts:80), so a fixture without it makes every
+        // test below assert against the wrong error. These tests were written
+        // before brandId existed and never caught it, because the file failed
+        // to import at all and so had never actually run.
+        formData.append('brandId', 'brand-test-1');
         return formData;
     };
 
     it('should return error if coupon code already exists (Unique Code Check)', async () => {
         // Mock API returning "already exists" error
-        mockFetch.mockResolvedValueOnce({
-            ok: false,
-            json: async () => ({ error: 'Coupon code already exists' }),
-        });
+        mockFetch.mockResolvedValueOnce(mockResponse(409, { message: 'Coupon code already exists' }));
 
         const formData = createBaseFormData();
         formData.set('code', 'SUMMER20');

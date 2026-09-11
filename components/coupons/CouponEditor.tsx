@@ -109,7 +109,7 @@ export default function CouponEditor({
   }, [brandName, data, startTransition]);
 
   const handleSubmit = (formData: FormData) => {
-    const isValid = validateAll({
+    const validationErrors = validateAll({
       name: formData.get("name")?.toString() ?? "",
       code: formData.get("code")?.toString() ?? "",
       discountType,
@@ -126,9 +126,13 @@ export default function CouponEditor({
       brandId,
     });
 
-    if (!isValid) {
+    if (validationErrors) {
+      // Read the messages validateAll just computed, NOT the `errors` state —
+      // that state is set inside validateAll and React has not re-rendered yet,
+      // so on a first submit it is still {} and the specific reason was being
+      // dropped in favour of the generic fallback below.
       const errorMsg =
-        Object.values(errors).find(Boolean) ||
+        Object.values(validationErrors).find(Boolean) ||
         "Please fix the errors before submitting.";
       toast.error(errorMsg as string);
       return;
