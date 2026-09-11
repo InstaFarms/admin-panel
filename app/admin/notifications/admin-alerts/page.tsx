@@ -10,6 +10,10 @@ import { getEmptyListMessage } from "@/constants/ui";
 import { Card } from "flowbite-react";
 import AdminAlertRulesTable from "./AdminAlertRulesTable";
 
+// Rules are read per request with the caller's admin token; there is nothing to
+// prerender at build time, when no cookie exists.
+export const dynamic = "force-dynamic";
+
 const BREADCRUMBS = [
   { href: "/", label: "Home" },
   { href: ADMIN_BASE_PATH, label: "Admin" },
