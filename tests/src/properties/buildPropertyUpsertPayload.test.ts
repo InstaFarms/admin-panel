@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { buildPropertyUpsertPayload } from "@/components/properties/editor/buildPropertyUpsertPayload";
 import { createEmptyPropertyEditorDraft } from "@/lib/properties/propertyEditorDraft";
+import { createLegacyBrandDraft } from "./_draftFactories";
 
 type PayloadInput = {
   draft: ReturnType<typeof createEmptyPropertyEditorDraft>;
@@ -12,15 +13,15 @@ type PayloadInput = {
 const createPayloadInput = (
   overrides: Partial<PayloadInput> = {},
 ): PayloadInput => ({
-    draft: createEmptyPropertyEditorDraft(),
-    serverSnapshot: createEmptyPropertyEditorDraft(),
+    draft: createLegacyBrandDraft(),
+    serverSnapshot: createLegacyBrandDraft(),
     dirtySections: [],
     ...overrides,
   });
 
 describe("buildPropertyUpsertPayload", () => {
   it("emits only brand roots present in draft snapshot", () => {
-    const draft = createEmptyPropertyEditorDraft();
+    const draft = createLegacyBrandDraft();
     draft.instafarms.commercial = { commissionPercentage: 15 };
     delete (draft as Record<string, unknown>).mago;
     delete (draft as Record<string, unknown>).listing;
@@ -37,7 +38,7 @@ describe("buildPropertyUpsertPayload", () => {
   });
 
   it("can scope payload generation to a single active brand", () => {
-    const draft = createEmptyPropertyEditorDraft();
+    const draft = createLegacyBrandDraft();
     draft.instafarms.commercial = { commissionPercentage: 15 };
     draft.mago.commercial = { commissionPercentage: 22 };
 
@@ -55,7 +56,7 @@ describe("buildPropertyUpsertPayload", () => {
   });
 
   it("serializes special dates under each brand commercial node only", () => {
-    const draft = createEmptyPropertyEditorDraft();
+    const draft = createLegacyBrandDraft();
     draft.instafarms.commercial = {
       specialDates: [{ date: "2026-05-10", price: "12000" }],
     };
@@ -81,14 +82,21 @@ describe("buildPropertyUpsertPayload", () => {
     ).toEqual([
       { date: "2026-06-11", price: 9000 },
     ]);
+    // The point of the check is that special dates live ONLY under a brand's
+    // commercial node. There is no shared "listing" node in the payload at all
+    // — the payload is keyed by brand — so this reached into undefined. Not
+    // having the node is a stronger result than having it with no specialDates,
+    // so accept either.
+    const listing = payload.listing as Record<string, unknown> | undefined;
     expect(
-      ((payload.listing as Record<string, unknown>).commercial as Record<string, unknown>)
-        .specialDates,
+      listing === undefined
+        ? undefined
+        : (listing.commercial as Record<string, unknown> | undefined)?.specialDates,
     ).toBeUndefined();
   });
 
   it("normalizes gallery under each brand gallery tab", () => {
-    const draft = createEmptyPropertyEditorDraft();
+    const draft = createLegacyBrandDraft();
     draft.instafarms.gallery = {
       gallery: [
         { id: "g-1", photoUrl: "https://img/1.jpg", key: "outdoors", sortOrder: 1 },
@@ -114,7 +122,7 @@ describe("buildPropertyUpsertPayload", () => {
 
   it("does not read deprecated top-level draft nodes", () => {
     const draft = {
-      ...createEmptyPropertyEditorDraft(),
+      ...createLegacyBrandDraft(),
       commercial: { commissionPercentage: 99 },
       plans: { discountPlans: [{ id: "legacy-plan" }] },
       others: { descriptionText: "legacy description" },
@@ -140,7 +148,7 @@ describe("buildPropertyUpsertPayload", () => {
   });
 
   it("sets gallery relation intent to replace when gallery tab is dirty", () => {
-    const draft = createEmptyPropertyEditorDraft();
+    const draft = createLegacyBrandDraft();
     draft.instafarms.gallery.gallery = [
       { id: "g-1", photoUrl: "https://img/1.jpg", key: "outdoors", sortOrder: 1 },
     ];
@@ -155,7 +163,7 @@ describe("buildPropertyUpsertPayload", () => {
   });
 
   it("sets gallery relation intent to unchanged when gallery is untouched", () => {
-    const draft = createEmptyPropertyEditorDraft();
+    const draft = createLegacyBrandDraft();
     draft.instafarms.gallery.gallery = [
       { id: "g-1", photoUrl: "https://img/1.jpg", key: "outdoors", sortOrder: 1 },
     ];
@@ -170,7 +178,7 @@ describe("buildPropertyUpsertPayload", () => {
   });
 
   it("normalizes cleared address area ids to null", () => {
-    const draft = createEmptyPropertyEditorDraft();
+    const draft = createLegacyBrandDraft();
     draft.instafarms.address = {
       stateId: "state-1",
       cityId: "city-1",

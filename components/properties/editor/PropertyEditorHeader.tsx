@@ -4,7 +4,7 @@ import MyButton from "@/components/MyButton";
 import DeletePropertyButton from "@/app/admin/properties/DeletePropertyButton";
 import PageBreadcrumb from "@/components/PageBreadcrumb";
 import { ADMIN_BASE_PATH } from "@/constants/routes";
-import { PROPERTY_EDITOR_TAB_INDEX } from "./PropertyEditorTabs";
+import { PROPERTY_EDITOR_TAB_INDEX } from "./propertyEditorTabIndex";
 import { Copy, ExternalLink, MoreVertical, Plus, Save, Trash2 } from "lucide-react";
 import type { BrandSlug } from "@/lib/properties/propertyEditorDraft";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";

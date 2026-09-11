@@ -4,7 +4,11 @@ import { createStaticImage, updateStaticImage, deleteStaticImage } from '@/actio
 
 import { isAdmin } from '@/utils/admin-only';
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/utils/api-utils';
-import { deleteImageAction } from '@/actions/imageActions';
+// staticImageActions deletes through deleteStorageImageAction, not
+// deleteImageAction — imageActions exports BOTH, and this file was asserting
+// on the one the code stopped calling, so the "not called" checks passed
+// vacuously and the "called with" ones could never pass.
+import { deleteStorageImageAction } from '@/actions/imageActions';
 
 vi.mock('server-only', () => { return {}; });
 vi.mock('next/cache', () => ({
@@ -50,7 +54,7 @@ describe('staticImageActions', () => {
         vi.mocked(apiPost).mockResolvedValue({ success: true } as any);
         vi.mocked(apiPatch).mockResolvedValue({ success: true } as any);
         vi.mocked(apiDelete).mockResolvedValue({ success: true } as any);
-        vi.mocked(deleteImageAction).mockResolvedValue({ success: true } as any);
+        vi.mocked(deleteStorageImageAction).mockResolvedValue({ success: true } as any);
     });
 
     afterEach(() => {
@@ -186,8 +190,8 @@ describe('staticImageActions', () => {
 
             await updateStaticImage('img-1', updateData, 'old/desktop.jpg', 'old/mobile.jpg');
 
-            expect(deleteImageAction).toHaveBeenCalledWith('old/desktop.jpg');
-            expect(deleteImageAction).toHaveBeenCalledWith('old/mobile.jpg');
+            expect(deleteStorageImageAction).toHaveBeenCalledWith('old/desktop.jpg');
+            expect(deleteStorageImageAction).toHaveBeenCalledWith('old/mobile.jpg');
         });
 
         it('should return error if unauthorized', async () => {
@@ -228,8 +232,8 @@ describe('staticImageActions', () => {
 
             expect(result).toEqual({ success: 'Static image deleted successfully' });
             expect(apiDelete).toHaveBeenCalledWith('/api/static-images/img-1', expect.any(Object));
-            expect(deleteImageAction).toHaveBeenCalledWith('static-images/desktop/test.jpg');
-            expect(deleteImageAction).toHaveBeenCalledWith('static-images/mobile/test.jpg');
+            expect(deleteStorageImageAction).toHaveBeenCalledWith('static-images/desktop/test.jpg');
+            expect(deleteStorageImageAction).toHaveBeenCalledWith('static-images/mobile/test.jpg');
         });
 
         it('should handle missing image paths gracefully', async () => {
@@ -244,7 +248,7 @@ describe('staticImageActions', () => {
 
             expect(result).toEqual({ success: 'Static image deleted successfully' });
             expect(apiDelete).toHaveBeenCalled();
-            expect(deleteImageAction).not.toHaveBeenCalled();
+            expect(deleteStorageImageAction).not.toHaveBeenCalled();
         });
 
         it('should return error if unauthorized', async () => {

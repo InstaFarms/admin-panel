@@ -48,25 +48,8 @@ interface PropertyEditorTabsProps {
   gstPolicy?: { boundary: number; lower: number; higher: number };
 }
 
-export const PROPERTY_EDITOR_TAB_INDEX = {
-  DETAIL: 0,
-  AUDIT: 1,
-  ADDRESS: 2,
-  GOOGLE_PLACE: 3,
-  COMMERCIAL: 4,
-  AMENITIES: 5,
-  GALLERY: 6,
-  SPACES: 7,
-  PEOPLE: 8,
-  PLANS: 9,
-  ICAL: 10,
-  OTHERS: 11,
-  OCCASION_SCORES: 12,
-  SLEEPING_SLOTS: 13,
-  // Manage Rooms renders after Sleeping Slots and only for resorts; keeping the
-  // conditional tab LAST keeps every unconditional tab's index stable.
-  MANAGE_ROOMS: 14,
-} as const;
+export { PROPERTY_EDITOR_TAB_INDEX } from "./propertyEditorTabIndex";
+import { PROPERTY_EDITOR_TAB_INDEX } from "./propertyEditorTabIndex";
 
 /**
  * Flowbite's Tabs mounts a fresh panel on every switch (the old one is fully

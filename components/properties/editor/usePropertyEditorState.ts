@@ -30,7 +30,6 @@ const isObjectLike = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
 const cloneRecord = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
-const BRAND_SLUG_SET = new Set<string>(BRAND_SLUGS);
 
 const setAtPath = <T extends object>(source: T, path: string, value: unknown): T => {
   if (!path.trim()) return source;
@@ -202,6 +201,26 @@ export function usePropertyEditorState(initialSnapshot: PropertyEditorDraft | nu
     return collectDirtyPaths(state.serverSnapshot, state.draft);
   }, [state.serverSnapshot, state.draft]);
 
+  /**
+   * Brand keys as they exist on the draft being edited, not the canonical
+   * BRAND_SLUGS list.
+   *
+   * The property-source migration renamed BRAND_SLUGS to the new casing
+   * (INSTAFARMS_EXCLUSIVE/MAGO/ELIVAAS), but the existing-property edit flow
+   * still builds drafts keyed by the legacy lowercase slugs — the same split
+   * buildPropertyUpsertPayload documents and works around. Testing membership
+   * against the wrong casing made every brand-scoped path collapse to its bare
+   * brand key, so "instafarms.commercial" came out as "instafarms" and no
+   * consumer matching on brand.section could ever hit. Deriving the set from
+   * the draft's own keys is right under either scheme.
+   */
+  const brandKeys = useMemo(() => {
+    const keys = new Set<string>(BRAND_SLUGS);
+    for (const key of Object.keys(state.draft ?? {})) keys.add(key);
+    for (const key of Object.keys(state.serverSnapshot ?? {})) keys.add(key);
+    return keys;
+  }, [state.draft, state.serverSnapshot]);
+
   const dirtySections = useMemo(
     () =>
       Array.from(
@@ -209,7 +228,7 @@ export function usePropertyEditorState(initialSnapshot: PropertyEditorDraft | nu
           dirtyPaths
             .map((path) => {
               const parts = path.split(".").filter(Boolean);
-              if (parts.length >= 2 && BRAND_SLUG_SET.has(parts[0] ?? "")) {
+              if (parts.length >= 2 && brandKeys.has(parts[0] ?? "")) {
                 return parts.slice(0, 2).join(".");
               }
               return parts[0] ?? "";
@@ -217,7 +236,7 @@ export function usePropertyEditorState(initialSnapshot: PropertyEditorDraft | nu
             .filter(Boolean),
         ),
       ),
-    [dirtyPaths],
+    [dirtyPaths, brandKeys],
   );
 
   return {

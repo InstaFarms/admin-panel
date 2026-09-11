@@ -14,6 +14,15 @@ vi.mock("flowbite-react", async (importOriginal) => {
     return mockFlowbiteReactFactory(importOriginal);
 });
 
+// StaticImageEditor also imports uploadSettingAssetAction from
+// @/actions/imageActions. Unstubbed, that real "use server" module was pulled
+// into jsdom and dragged in `server-only`, failing the whole FILE at import
+// time — the suite reported 0 tests here rather than a failure.
+vi.mock("@/actions/imageActions", () => ({
+  uploadSettingAssetAction: vi.fn(async () => ({ success: { url: "https://example.test/uploaded.jpg" } })),
+  deleteStorageImageAction: vi.fn(async () => ({ success: true })),
+}));
+
 vi.mock("@/actions/staticImageActions", () => ({
     createStaticImage: vi.fn(),
     updateStaticImage: vi.fn(),
@@ -92,8 +101,11 @@ describe("StaticImageEditor", () => {
     it("should render empty state when no images provided", () => {
         render(<StaticImageEditor section="homepage_hero" />);
 
-        expect(screen.getByText(/No images yet/i)).toBeInTheDocument();
-        expect(screen.getByText(/Click "Add Image" or "Bulk Upload" to get started/i)).toBeInTheDocument();
+        // Copy is "No images added yet".
+        expect(screen.getByText(/No images added yet/i)).toBeInTheDocument();
+        expect(
+            screen.getByText(/Start with a single image or bring in paired desktop\/mobile files in bulk/i)
+        ).toBeInTheDocument();
     });
 
     it("should render existing images when data is provided", () => {
@@ -106,11 +118,16 @@ describe("StaticImageEditor", () => {
     it("should add new image when Add Image button is clicked", () => {
         render(<StaticImageEditor section="homepage_hero" />);
 
-        const addButton = screen.getByText("Add Image");
+        // The EMPTY state offers "Add First Image"; the plain "Add Image"
+        // button only appears once at least one image exists.
+        const addButton = screen.getByText("Add First Image");
         fireEvent.click(addButton);
 
-        // Should show input fields for new image
-        const titleInputs = screen.getAllByPlaceholderText(/title/i);
+        // The Title field is labelled "Title *"; its PLACEHOLDER is example
+        // copy ("Homepage hero, partner logo, footer icon...") and contains no
+        // word "title" at all, so matching on the placeholder never worked.
+        // Match the label, which is what the field actually promises.
+        const titleInputs = screen.getAllByLabelText(/Title/i);
         expect(titleInputs.length).toBeGreaterThan(0);
     });
 
@@ -144,9 +161,15 @@ describe("StaticImageEditor", () => {
 
         render(<StaticImageEditor section="homepage_hero" data={[mockImageData[0]]} />);
 
-        const removeButtons = screen.getAllByRole("button");
-        const removeBtn = removeButtons[removeButtons.length - 1];
-        fireEvent.click(removeBtn);
+        // Target the delete control the same way the sibling remove test does.
+        // Taking the LAST button in the DOM happened to be the delete button
+        // once; it now picks up whatever control renders last, so the delete
+        // never fired and the missing error toast looked like a product bug.
+        const redButtons = screen
+            .getAllByRole("button")
+            .filter((btn) => btn.getAttribute("color") === "red");
+        expect(redButtons.length).toBeGreaterThan(0);
+        fireEvent.click(redButtons[0]);
 
         await waitFor(() => {
             expect(toast.error).toHaveBeenCalledWith("Failed to delete");
@@ -211,7 +234,7 @@ describe("StaticImageEditor", () => {
         fireEvent.click(addButton);
 
         // Fill in title
-        const titleInputs = screen.getAllByPlaceholderText(/title/i);
+        const titleInputs = screen.getAllByLabelText(/Title/i);
         if (titleInputs.length > 0) {
             fireEvent.change(titleInputs[0], { target: { value: "New Image" } });
         }

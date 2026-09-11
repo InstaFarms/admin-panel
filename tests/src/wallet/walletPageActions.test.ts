@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import {
     getUpcomingSettlements,
-    getFailedWithdrawals,
-    getPendingWithdrawals,
+    getFailedSettlements,
     getBlockedSettlements,
 } from '@/actions/walletPageActions';
 
@@ -96,32 +95,37 @@ describe('walletPageActions', () => {
         });
     });
 
-    describe('getFailedWithdrawals', () => {
-        it('should fetch failed withdrawals successfully', async () => {
-            const mockWithdrawals = [
-                { id: 'withdrawal-1', amount: 500, status: 'failed', error: 'Network error' },
-                { id: 'withdrawal-2', amount: 1000, status: 'failed', error: 'Insufficient funds' },
+    // getFailedWithdrawals and getPendingWithdrawals used to live here. They
+    // are not exported by @/actions/walletPageActions — that module is about
+    // SETTLEMENTS, and the /api/wallet/withdrawal-requests/* endpoints those
+    // tests asserted on do not exist in it. The whole file failed to import
+    // because of them, so nothing in it ran. Replaced with the one real export
+    // that had no coverage.
+    describe('getFailedSettlements', () => {
+        it('should fetch failed settlements successfully', async () => {
+            const mockSettlements = [
+                { id: 'settlement-1', amount: 500, status: 'failed', error: 'Network error' },
+                { id: 'settlement-2', amount: 1000, status: 'failed', error: 'Insufficient funds' },
             ];
             vi.mocked(apiGet).mockResolvedValueOnce({
-                data: mockWithdrawals,
+                data: mockSettlements,
             } as any);
 
             const searchParams = createMockSearchParams();
-            const result = await getFailedWithdrawals(searchParams);
+            const result = await getFailedSettlements(searchParams);
 
-            expect(result).toEqual(mockWithdrawals);
+            expect(result).toEqual(mockSettlements);
             expect(apiGet).toHaveBeenCalledWith(
-                expect.stringContaining('/api/wallet/withdrawal-requests/failed'),
+                expect.stringContaining('/api/wallet/settlements/failed'),
                 expect.any(Object)
             );
         });
 
         it('should handle pagination correctly', async () => {
-            // Clear previous calls
             vi.clearAllMocks();
-            
+
             const searchParams = createMockSearchParams(15, 30);
-            await getFailedWithdrawals(searchParams);
+            await getFailedSettlements(searchParams);
 
             const callUrl = vi.mocked(apiGet).mock.calls[0][0] as string;
             expect(callUrl).toContain('limit=15');
@@ -132,47 +136,14 @@ describe('walletPageActions', () => {
             vi.mocked(apiGet).mockRejectedValueOnce(new Error('Failed to fetch'));
 
             const searchParams = createMockSearchParams();
-            await expect(getFailedWithdrawals(searchParams)).rejects.toThrow('Failed to fetch');
-        });
-    });
-
-    describe('getPendingWithdrawals', () => {
-        it('should fetch pending withdrawals successfully', async () => {
-            const mockWithdrawals = [
-                { id: 'withdrawal-1', amount: 500, status: 'pending', requestedAt: '2024-01-10' },
-                { id: 'withdrawal-2', amount: 1000, status: 'pending', requestedAt: '2024-01-11' },
-            ];
-            vi.mocked(apiGet).mockResolvedValueOnce({
-                data: mockWithdrawals,
-            } as any);
-
-            const searchParams = createMockSearchParams();
-            const result = await getPendingWithdrawals(searchParams);
-
-            expect(result).toEqual(mockWithdrawals);
-            expect(apiGet).toHaveBeenCalledWith(
-                expect.stringContaining('/api/wallet/withdrawal-requests/pending'),
-                expect.any(Object)
-            );
+            await expect(getFailedSettlements(searchParams)).rejects.toThrow('Failed to fetch');
         });
 
-        it('should handle pagination correctly', async () => {
-            // Clear previous calls
-            vi.clearAllMocks();
-            
-            const searchParams = createMockSearchParams(25, 50);
-            await getPendingWithdrawals(searchParams);
+        it('should return empty array when no failed settlements found', async () => {
+            vi.mocked(apiGet).mockResolvedValueOnce({ data: [] } as any);
 
-            const callUrl = vi.mocked(apiGet).mock.calls[0][0] as string;
-            expect(callUrl).toContain('limit=25');
-            expect(callUrl).toContain('offset=50');
-        });
-
-        it('should throw error when API call fails', async () => {
-            vi.mocked(apiGet).mockRejectedValueOnce(new Error('Network error'));
-
-            const searchParams = createMockSearchParams();
-            await expect(getPendingWithdrawals(searchParams)).rejects.toThrow('Network error');
+            const result = await getFailedSettlements(createMockSearchParams());
+            expect(result).toEqual([]);
         });
     });
 
@@ -232,8 +203,7 @@ describe('walletPageActions', () => {
             const searchParams = createMockSearchParams();
 
             await getUpcomingSettlements(searchParams);
-            await getFailedWithdrawals(searchParams);
-            await getPendingWithdrawals(searchParams);
+            await getFailedSettlements(searchParams);
             await getBlockedSettlements(searchParams);
 
             // All calls should include token in options

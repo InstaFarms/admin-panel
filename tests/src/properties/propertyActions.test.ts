@@ -204,8 +204,12 @@ describe('propertyActions', () => {
             expect(result).toEqual(
                 expect.objectContaining({
                     success: expect.any(String),
+                    // extractUpsertMeta returns propertyUpdatedAt alongside
+                    // propertyId — the optimistic-concurrency stamp the editor
+                    // sends back on the next save. This deep-equal predates it.
                     data: {
                         propertyId: 'prop-123',
+                        propertyUpdatedAt: null,
                     },
                 })
             );
@@ -408,8 +412,12 @@ describe('propertyActions', () => {
             expect(result).toEqual(
                 expect.objectContaining({
                     success: expect.any(String),
+                    // extractUpsertMeta returns propertyUpdatedAt alongside
+                    // propertyId — the optimistic-concurrency stamp the editor
+                    // sends back on the next save. This deep-equal predates it.
                     data: {
                         propertyId: 'prop-123',
+                        propertyUpdatedAt: null,
                     },
                 })
             );

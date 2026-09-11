@@ -98,6 +98,31 @@ vi.mock("@/components/proposals/SortablePropertyItem", () => ({
     )
 }));
 
+/**
+ * Adds `count` properties through the Property Code flow.
+ *
+ * The submit button requires at least THREE selected properties
+ * (ProposalBuilder: selectedProperties.length >= 3 && !!selectedCustomerId),
+ * so a test that adds one and then clicks submit is clicking a disabled
+ * button — which reads as 'the action was never called' rather than
+ * 'the form was not valid'.
+ */
+const addProperties = async (count: number) => {
+  const input = screen.getByPlaceholderText("Enter Property Code (e.g. HYD1000)");
+  for (let i = 1; i <= count; i += 1) {
+    vi.mocked(propertyActions.getPropertyByCode).mockResolvedValue({
+      data: {
+        id: `p${i}`,
+        propertyName: `Prop ${i}`,
+        property_code_name: `CODE${i}`,
+      },
+    } as any);
+    fireEvent.change(input, { target: { value: `CODE${i}` } });
+    fireEvent.click(screen.getByText("Add"));
+    await screen.findByTestId(`property-item-p${i}`);
+  }
+};
+
 describe("ProposalBuilder Logic", () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -281,13 +306,18 @@ describe("ProposalBuilder Logic", () => {
         fireEvent.click(submitBtn);
 
         await waitFor(() => {
-            expect(proposalActions.updateProposal).toHaveBeenCalledWith("1", expect.objectContaining({
-                items: [
-                    { propertyId: "p2", order: 0 },
-                    { propertyId: "p3", order: 1 },
-                    { propertyId: "p1", order: 2 }
-                ]
-            }));
+            // Third argument: the brand/basePath options the component gained.
+            expect(proposalActions.updateProposal).toHaveBeenCalledWith(
+                "1",
+                expect.objectContaining({
+                    items: [
+                        { propertyId: "p2", order: 0 },
+                        { propertyId: "p3", order: 1 },
+                        { propertyId: "p1", order: 2 }
+                    ]
+                }),
+                { brandName: undefined, basePath: "/admin/proposals" }
+            );
         });
     });
 
@@ -303,15 +333,15 @@ describe("ProposalBuilder Logic", () => {
         fireEvent.click(custSelect);
         expect(saveBtn).toBeDisabled();
 
-        // 3. Add Property -> Button Enabled
-        vi.mocked(propertyActions.getPropertyByCode).mockResolvedValue({
-            data: { id: "p1", propertyName: "Prop 1", property_code_name: "CODE1" }
-        });
-        const input = screen.getByPlaceholderText("Enter Property Code (e.g. HYD1000)");
-        fireEvent.change(input, { target: { value: "CODE1" } });
-        fireEvent.click(screen.getByText("Add", { selector: "button" }));
-        await screen.findByTestId("property-item-p1");
+        // 3. A proposal needs at least THREE properties, so one and two are
+        //    still not enough — the rule is worth asserting, not just
+        //    satisfying.
+        await addProperties(1);
+        expect(saveBtn).toBeDisabled();
+        await addProperties(2);
+        expect(saveBtn).toBeDisabled();
 
+        await addProperties(3);
         expect(saveBtn).not.toBeDisabled();
     });
 
@@ -324,25 +354,30 @@ describe("ProposalBuilder Logic", () => {
         // 1. Select Customer
         fireEvent.click(screen.getByTestId("mock-customer-select"));
 
-        // 2. Add Property (via Code for simplicity)
-        vi.mocked(propertyActions.getPropertyByCode).mockResolvedValue({
-            data: { id: "p1", propertyName: "Prop 1", property_code_name: "CODE1" }
-        });
-        const input = screen.getByPlaceholderText("Enter Property Code (e.g. HYD1000)");
-        fireEvent.change(input, { target: { value: "CODE1" } });
-        fireEvent.click(screen.getByText("Add"));
-        await waitFor(() => screen.findByTestId("property-item-p1"));
+        // 2. Add three properties — the submit button is gated on having at
+        //    least that many, so adding one leaves it disabled and the click
+        //    below does nothing.
+        await addProperties(3);
 
         // 3. Submit
         fireEvent.click(screen.getByText("Create & Publish Proposal"));
 
         // 4. Verify Payload
         await waitFor(() => {
-            expect(proposalActions.createProposal).toHaveBeenCalledWith(expect.objectContaining({
-                customerId: "cust-1",
-                items: [{ propertyId: "p1", order: 0 }],
-                // Check if validTill is present (ISO string check if we set it, or just undefined/string)
-            }));
+            // Second argument: the brand/basePath options the component gained.
+            // toHaveBeenCalledWith matches the argument COUNT too, so an
+            // expectation written for the old single-argument call can never pass.
+            expect(proposalActions.createProposal).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    customerId: "cust-1",
+                    items: [
+                        { propertyId: "p1", order: 0 },
+                        { propertyId: "p2", order: 1 },
+                        { propertyId: "p3", order: 2 },
+                    ],
+                }),
+                { brandName: undefined, basePath: "/admin/proposals" }
+            );
         });
     });
 
@@ -355,7 +390,13 @@ describe("ProposalBuilder Logic", () => {
             customerId: "cust-existing",
             customerFirstName: "Jane",
             customerLastName: "Doe",
-            items: [{ order: 0, property: { id: "p-exist", propertyName: "Existing" } }]
+            // Three items: the submit button requires at least that many,
+            // so a one-property proposal cannot be saved at all.
+            items: [
+                { order: 0, property: { id: "p-exist", propertyName: "Existing" } },
+                { order: 1, property: { id: "p-exist-2", propertyName: "Existing 2" } },
+                { order: 2, property: { id: "p-exist-3", propertyName: "Existing 3" } },
+            ]
         };
 
         render(<ProposalBuilder initialData={initialData as any} />);
@@ -365,10 +406,18 @@ describe("ProposalBuilder Logic", () => {
         fireEvent.click(updateBtn);
 
         await waitFor(() => {
-            expect(proposalActions.updateProposal).toHaveBeenCalledWith("prop-123", expect.objectContaining({
-                customerId: "cust-existing",
-                items: [{ propertyId: "p-exist", order: 0 }]
-            }));
+            expect(proposalActions.updateProposal).toHaveBeenCalledWith(
+                "prop-123",
+                expect.objectContaining({
+                    customerId: "cust-existing",
+                    items: [
+                        { propertyId: "p-exist", order: 0 },
+                        { propertyId: "p-exist-2", order: 1 },
+                        { propertyId: "p-exist-3", order: 2 },
+                    ]
+                }),
+                { brandName: undefined, basePath: "/admin/proposals" }
+            );
         });
     });
 
@@ -381,13 +430,7 @@ describe("ProposalBuilder Logic", () => {
         // Fill required fields
         fireEvent.click(screen.getByTestId("mock-customer-select"));
 
-        vi.mocked(propertyActions.getPropertyByCode).mockResolvedValue({
-            data: { id: "p1", propertyName: "Prop 1", property_code_name: "CODE1" }
-        });
-        const input = screen.getByPlaceholderText("Enter Property Code (e.g. HYD1000)");
-        fireEvent.change(input, { target: { value: "CODE1" } });
-        fireEvent.click(screen.getByText("Add", { selector: "button" }));
-        await screen.findByTestId("property-item-p1");
+        await addProperties(3);
 
         // Submit
         fireEvent.click(screen.getByText("Create & Publish Proposal"));

@@ -20,6 +20,21 @@ vi.mock("@/actions/couponActions", () => ({
   editCoupon: vi.fn(() => Promise.resolve({ success: "Updated" })),
 }));
 
+/**
+ * CouponEditor also imports getAllPropertiesForSelector from
+ * @/actions/propertyActions, and that was NOT stubbed — so the real "use
+ * server" module was pulled into a jsdom run, dragging in `server-only` and
+ * failing the whole FILE at import time with "This module cannot be imported
+ * from a Client Component module". Nothing in here ran; the suite reported
+ * zero of these tests rather than a failure inside one, which is easy to miss.
+ *
+ * Returns an empty list: the effect that calls this only preloads the entity
+ * picker, which none of the assertions below look at.
+ */
+vi.mock("@/actions/propertyActions", () => ({
+  getAllPropertiesForSelector: vi.fn(() => Promise.resolve({ data: [] })),
+}));
+
 vi.mock("@/hooks/useCouponForm", () => ({
   useCouponForm: () => ({
     errors: {},
@@ -52,7 +67,12 @@ vi.mock("@/components/coupons/CouponApplicableDays", () => ({
   __esModule: true,
   default: () => <div data-testid="coupon-applicable-days" />,
 }));
-vi.mock("@/components/common/PropertyApplicabilitySelector", () => ({
+// CouponEditor imports EntityApplicabilitySelector. This used to stub
+// PropertyApplicabilitySelector — a stale name left behind by a rename — so
+// the real selector rendered and the "entity-applicability-selector" testid
+// the assertion looks for never existed. It was invisible while the file was
+// failing to import at all.
+vi.mock("@/components/common/EntityApplicabilitySelector", () => ({
   __esModule: true,
   default: () => <div data-testid="entity-applicability-selector" />,
 }));

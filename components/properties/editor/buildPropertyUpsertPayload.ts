@@ -313,11 +313,21 @@ export const buildPropertyUpsertPayload = (
   // casing silently dropped every requested slug, so a Mago-tab edit ended up
   // saving whatever the "instafarms" fallback below produced instead.
   const requestedBrandSlugs = ensureArray<BrandSlug>(input.brandSlugs);
-  const draftBrandSlugs = (requestedBrandSlugs.length > 0 ? requestedBrandSlugs : BRAND_SLUGS).filter((slug) =>
-    Object.prototype.hasOwnProperty.call(draft, slug),
-  );
-  if (requestedBrandSlugs.length === 0 && !draftBrandSlugs.includes("instafarms")) {
-    draftBrandSlugs.unshift("instafarms");
+  // With no explicit request, fall back to the brand keys the DRAFT actually
+  // carries. Filtering BRAND_SLUGS (new casing) against a legacy lowercase
+  // draft matched nothing, and the "instafarms" backstop below then produced a
+  // single-brand payload — so a Mago bundle was silently dropped whenever the
+  // caller did not name its slugs. Reading the draft's own keys is correct
+  // under either casing scheme and needs no hardcoded brand.
+  const draftBrandSlugs = (
+    requestedBrandSlugs.length > 0
+      ? requestedBrandSlugs
+      : (Object.keys(draft) as BrandSlug[])
+  ).filter((slug) => Object.prototype.hasOwnProperty.call(draft, slug));
+  if (draftBrandSlugs.length === 0) {
+    // Nothing usable on the draft at all — keep the historical default so a
+    // brand-new property still serialises under a brand root.
+    draftBrandSlugs.push("instafarms" as BrandSlug);
   }
 
   const normalizedDraft = draftBrandSlugs.reduce<

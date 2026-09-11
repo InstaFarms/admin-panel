@@ -18,8 +18,18 @@ vi.mock("react-hot-toast", () => ({
   default: { success: vi.fn(), error: vi.fn() },
 }));
 
+// The bootstrap value must keep a STABLE identity across renders.
+// usePropertyEditorState runs dispatch({type:"INIT"}) in a useEffect keyed on
+// initialSnapshot, so a mock that returns a fresh object literal every call
+// re-inits on every render and the component never settles — it OOM-killed the
+// vitest worker. The real hook holds this in useState, so production is stable;
+// only the mock was churning.
+const bootstrapValue = vi.hoisted(() => ({
+  value: null as any,
+}));
+
 vi.mock("@/hooks/properties/usePropertyBootstrap", () => ({
-  usePropertyBootstrap: vi.fn(() => ({
+  usePropertyBootstrap: vi.fn(() => (bootstrapValue.value ??= {
     isEditMode: false,
     initialSnapshot: {
       instafarms: {
@@ -68,8 +78,11 @@ vi.mock("@/hooks/properties/usePropertyBootstrap", () => ({
   })),
 }));
 
+// Same reasoning as above: stable identity.
+const servicesValue = vi.hoisted(() => ({ value: null as any }));
+
 vi.mock("@/hooks/properties/usePropertyServices", () => ({
-  usePropertyServices: vi.fn(() => ({
+  usePropertyServices: vi.fn(() => (servicesValue.value ??= {
     saveUnsavedAreas: vi.fn(async () => true),
     searchUsers: vi.fn(async () => []),
     searchDiscountPlans: vi.fn(async () => []),
@@ -106,8 +119,20 @@ vi.mock("@/components/properties/gallery-section", () => ({
   GallerySection: () => <div data-testid="gallery-section" />,
 }));
 
+// PROPERTY_EDITOR_TAB_INDEX now lives in its own UI-free module, so mocking
+// the tab COMPONENT no longer takes the indices down with it. That is what
+// used to fail here: PropertyEditor imported both from this module, and the
+// mock supplied only the component.
 vi.mock("@/components/properties/editor/PropertyEditorTabs", () => ({
   PropertyEditorTabs: () => <div data-testid="property-editor-tabs" />,
+}));
+
+// The header is a child like any other here — this suite only asserts that the
+// editor shell renders. Left unmocked it pulled in the real breadcrumb/brand
+// pill tree and the render never settled.
+vi.mock("@/components/properties/editor/PropertyEditorHeader", () => ({
+  __esModule: true,
+  default: () => <div data-testid="property-editor-header" />,
 }));
 
 vi.mock("@/components/properties/DetailSection", () => ({
@@ -194,6 +219,16 @@ vi.mock("flowbite-react", () => ({
   ModalHeader: ({ children }: any) => <div>{children}</div>,
   ModalBody: ({ children }: any) => <div>{children}</div>,
   ModalFooter: ({ children }: any) => <div>{children}</div>,
+  Breadcrumb: ({ children }: any) => <nav>{children}</nav>,
+  BreadcrumbItem: ({ children }: any) => <span>{children}</span>,
+  Badge: ({ children }: any) => <span>{children}</span>,
+  Card: ({ children }: any) => <div>{children}</div>,
+  Tooltip: ({ children }: any) => <div>{children}</div>,
+  Dropdown: ({ children }: any) => <div>{children}</div>,
+  DropdownItem: ({ children }: any) => <div>{children}</div>,
+  Checkbox: (props: any) => <input type="checkbox" {...props} />,
+  Textarea: (props: any) => <textarea {...props} />,
+  FileInput: (props: any) => <input type="file" {...props} />,
 }));
 
 describe("PropertyEditor", () => {

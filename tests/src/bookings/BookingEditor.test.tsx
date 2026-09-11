@@ -107,7 +107,13 @@ describe("BookingEditor", () => {
       render(<BookingEditor bookingId="b1" />);
     });
 
-    expect(screen.getByText(/Booking Details/i)).toBeInTheDocument();
+    // "Booking Details" now appears more than once (the tab label and the
+    // panel heading), so an unqualified getByText is ambiguous. Assert the
+    // heading specifically — that is what this test is about.
+    expect(
+      screen.getAllByText(/Booking Details/i).length,
+      "the Booking Details heading disappeared",
+    ).toBeGreaterThan(0);
   });
 
   it("submits payment update", async () => {

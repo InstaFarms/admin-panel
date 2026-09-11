@@ -16,7 +16,8 @@ import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import PendingBrandActionModal from "./PendingBrandActionModal";
-import { PropertyEditorTabs, PROPERTY_EDITOR_TAB_INDEX } from "./PropertyEditorTabs";
+import { PropertyEditorTabs } from "./PropertyEditorTabs";
+import { PROPERTY_EDITOR_TAB_INDEX } from "./propertyEditorTabIndex";
 import PropertySetupWarningBanner from "./PropertySetupWarningBanner";
 import { usePropertySubmit } from "./usePropertySubmit";
 import { usePropertyEditorState } from "./usePropertyEditorState";

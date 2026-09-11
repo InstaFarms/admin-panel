@@ -100,12 +100,37 @@ describe("validateOwnerFormValues", () => {
       expect(errors.mobileNumber).toBe(USERS_VALIDATION.mobileInvalid);
     });
 
-    it("accepts 10–13 digit numbers and optional +", () => {
-      const validMobiles = ["9876543210", "+919876543210", "1234567890123"];
-      validMobiles.forEach((mobileNumber) => {
+    /**
+     * This used to assert "accepts 10–13 digit numbers and optional +", which
+     * the validator has never done and should not: the rule across this admin
+     * is a bare 10-digit Indian mobile with no country code. The customer form
+     * applies the same length rule (useCustomerForm validateMobile), the
+     * UserEditor inputs are maxLength={10}, and the message the validator
+     * returns says so in as many words — "Mobile number must be exactly 10
+     * digits". A country code is added server-side by formatPhoneNumber, not
+     * typed in here.
+     *
+     * So the TEST was wrong, not the product. Rewritten to pin the real rule.
+     */
+    it("accepts a bare 10-digit number", () => {
+      const errors = validateOwnerFormValues({ ...validValues, mobileNumber: "9876543210" });
+      expect(errors.mobileNumber).toBeNull();
+    });
+
+    it("tolerates spaces inside an otherwise valid number", () => {
+      const errors = validateOwnerFormValues({ ...validValues, mobileNumber: " 98765 43210 " });
+      expect(errors.mobileNumber).toBeNull();
+    });
+
+    it("rejects a country code and anything longer than 10 digits", () => {
+      // "+919876543210" is the shape formatPhoneNumber produces server-side;
+      // it is not what an admin types into this field.
+      for (const mobileNumber of ["+919876543210", "919876543210", "1234567890123"]) {
         const errors = validateOwnerFormValues({ ...validValues, mobileNumber });
-        expect(errors.mobileNumber).toBeNull();
-      });
+        expect(errors.mobileNumber, `"${mobileNumber}" should be rejected`).toBe(
+          USERS_VALIDATION.mobileInvalid
+        );
+      }
     });
   });
 

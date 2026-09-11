@@ -2,9 +2,10 @@ import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { usePropertyEditorState } from "@/components/properties/editor/usePropertyEditorState";
 import { createEmptyPropertyEditorDraft } from "@/lib/properties/propertyEditorDraft";
+import { createLegacyBrandDraft } from "./_draftFactories";
 
 const baseSnapshot = (() => {
-  const draft = createEmptyPropertyEditorDraft();
+  const draft = createLegacyBrandDraft();
   draft.instafarms.detail = { propertyName: "Seed", showOnInstafarms: true };
   draft.instafarms.commercial = { commissionPercentage: 10 };
   return draft;

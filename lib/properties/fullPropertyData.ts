@@ -1,6 +1,29 @@
 import { BRAND_SLUGS, type BrandSlug } from "./propertyEditorDraft";
 type AnyRecord = Record<string, any>;
 
+/**
+ * Brand keys to walk when normalizing a payload.
+ *
+ * BRAND_SLUGS was renamed to the new PropertySource casing
+ * (INSTAFARMS_EXCLUSIVE/MAGO/ELIVAAS), but the /full API payload — and the rest
+ * of THIS module, which reads `sourceAny.instafarms` and
+ * `brandData.instafarms` by name — is keyed by the legacy lowercase slugs. So
+ * iterating BRAND_SLUGS alone found no brand nodes at all and brandData came
+ * back empty, silently dropping every brand's commercial/plans/others.
+ *
+ * Union the canonical list with whatever keys the payload actually carries, so
+ * this is right under either scheme.
+ */
+const brandKeysPresentIn = (...sources: unknown[]): BrandSlug[] => {
+  const keys = new Set<string>(BRAND_SLUGS);
+  for (const source of sources) {
+    if (source && typeof source === "object") {
+      for (const key of Object.keys(source as AnyRecord)) keys.add(key);
+    }
+  }
+  return Array.from(keys) as BrandSlug[];
+};
+
 const ensureObject = (value: unknown): AnyRecord =>
   value && typeof value === "object" && !Array.isArray(value) ? (value as AnyRecord) : {};
 
@@ -327,7 +350,7 @@ export function normalizePropertyFullData(payload: unknown): NormalizedPropertyF
       null;
 
     const brandData: PropertyFullTabs["brandData"] = {};
-    for (const slug of BRAND_SLUGS) {
+    for (const slug of brandKeysPresentIn(sourceAny)) {
       const node = brandNode(slug);
       if (Object.keys(node).length === 0) continue;
       const commercial = ensureObject(node.commercial);
@@ -566,7 +589,7 @@ export function normalizePropertyFullData(payload: unknown): NormalizedPropertyF
     Object.keys(topLevelBrandData).length > 0;
   const presentBrandSlugs = Array.from(
     new Set(
-      BRAND_SLUGS.filter((slug) => {
+      brandKeysPresentIn(commercialByBrand, plansByBrand, othersByBrand, tabLevelBrandData, topLevelBrandData).filter((slug) => {
         const hasCommercial = Object.keys(ensureObject(commercialByBrand[slug])).length > 0;
         const hasPlans = Object.keys(ensureObject(plansByBrand[slug])).length > 0;
         const hasOthers = Object.keys(ensureObject(othersByBrand[slug])).length > 0;
