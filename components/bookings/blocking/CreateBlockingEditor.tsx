@@ -561,22 +561,29 @@ export default function CreateBlockingEditor({ brands }: CreateBlockingEditorPro
               {/* Blocking Reason */}
               <div style={{ marginBottom: 18, animation: "cb-fade-up .4s .14s both" }}>
                 <label style={fieldLabelStyle}>Blocking reason <span style={{ color: "#e0698a" }}>*</span></label>
-                <input
-                  value={manualBlockReason}
-                  onChange={(e) => setManualBlockReason(e.target.value)}
-                  maxLength={500}
-                  placeholder="Maintenance, renovation, owner hold..."
-                  style={{ ...selectStyle, paddingRight: 14, backgroundImage: "none" }}
-                />
+                {/* The Blocking Reasons master list is the primary control.
+                    This select was already fetched and populated but rendered
+                    with display:none, so the only reason an admin could give was
+                    free text and the master data was unreachable from this page
+                    — the reasons could not be reported on or kept consistent.
+                    The free-text box below stays as the deliberate escape hatch
+                    and still takes precedence in the payload when filled. */}
                 <select
                   value={blockingReasonId}
                   onChange={(e) => setBlockingReasonId(e.target.value)}
                   disabled={blockingReasons.length === 0}
-                  style={{ display: "none" }}
+                  style={selectStyle}
                 >
                   <option value="">{blockingReasons.length === 0 ? "Loading reasons…" : "Select a reason"}</option>
                   {blockingReasons.map((r) => <option key={r.id} value={r.id}>{r.reason}</option>)}
                 </select>
+                <input
+                  value={manualBlockReason}
+                  onChange={(e) => setManualBlockReason(e.target.value)}
+                  maxLength={500}
+                  placeholder="Or type a custom reason (overrides the selection above)"
+                  style={{ ...selectStyle, paddingRight: 14, backgroundImage: "none", marginTop: 8 }}
+                />
               </div>
 
               {/* Notes */}
