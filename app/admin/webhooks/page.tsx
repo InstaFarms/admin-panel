@@ -18,7 +18,22 @@ import { getRazorpayWebhookLogs } from "@/actions/webhookActions";
 
 export default async function Page({ searchParams }: ServerPageProps) {
   const { offset } = parseLimitOffset(await searchParams);
-  const logs = await getRazorpayWebhookLogs(searchParams);
+  const { data: logs, error } = await getRazorpayWebhookLogs(searchParams);
+
+  if (error) {
+    return (
+      <div className="flex w-full flex-col">
+        <Card className="w-full">
+          <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+            Razorpay Webhook Logs
+          </h5>
+          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+            {error}
+          </p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex w-full flex-col">

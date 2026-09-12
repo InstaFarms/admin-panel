@@ -75,7 +75,10 @@ export default async function Page({ searchParams }: ServerPageProps) {
     propertySearch,
     propertySearchType,
     bookingType: "Online",
-    bookingSource: "instafarms",
+    // The API discards bookingSource ("booking_sources table not yet migrated
+    // — skip"), so this is what actually scopes the list to its own brand
+    // (QA #121).
+    appType: "INSTAFARMS_ADMIN",
     presentOnMago,
     excludeTest,
   });

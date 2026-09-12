@@ -1072,6 +1072,17 @@ export const getAdminBookingsList = async (params: {
   propertySearchType?: "code" | "name";
   bookingType?: string;
   bookingSource?: string;
+  /**
+   * Which brand's bookings to return. The sibling lists (Instafarms Offline,
+   * Mago Offline, …) are brand views — their names say so — but they used to
+   * distinguish themselves ONLY by `bookingSource`, which the API discards
+   * ("booking_sources table not yet migrated — skip"). Both therefore ran the
+   * identical query and showed the identical rows (QA #121).
+   *
+   * Left unset, apiPost defaults to INSTAFARMS_ADMIN, so Mago Offline was
+   * showing Instafarms bookings.
+   */
+  appType?: "INSTAFARMS_ADMIN" | "MAGO_ADMIN";
   presentOnMago?: boolean;
   excludeTest?: boolean;
 }) => {
@@ -1162,8 +1173,12 @@ export const getAdminBookingsList = async (params: {
       return { success: rows };
     }
 
-    // Default single-brand flow
-    const response = await apiPost<any>("/api/booking/admin/list", requestBody, { token });
+    // Default single-brand flow. The app-type is what the API resolves the
+    // brand from, so a caller that wants a specific brand's list must say which.
+    const response = await apiPost<any>("/api/booking/admin/list", requestBody, {
+      token,
+      ...(params.appType ? { appType: params.appType } : {}),
+    });
     console.log("[AllBookings][Action] Single-brand fetch result", {
       count: Array.isArray(response?.data) ? response.data.length : 0,
     });
