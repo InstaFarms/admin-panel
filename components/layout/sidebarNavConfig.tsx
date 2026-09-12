@@ -911,6 +911,12 @@ export const SIDEBAR_NAV_GROUP_2: SidebarNavEntry[] = [
     permissionKey: "NOTIFICATIONS",
     items: [
       {
+        href: "/admin/notifications/admin-alerts",
+        label: "Admin Alerts",
+        icon: HiBell,
+        activeMatch: "/admin/notifications/admin-alerts",
+      },
+      {
         href: "/admin/notifications/templates",
         label: "Templates",
         icon: HiTemplate,
