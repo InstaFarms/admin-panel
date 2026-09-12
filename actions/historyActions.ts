@@ -28,6 +28,28 @@ export async function getTableHistory(searchParams: Promise<Record<string, strin
     params.append("limit", limit.toString());
     params.append("offset", offset.toString());
 
+    // Table History has tens of thousands of rows and no date column, so
+    // without these there is no way to reach a specific entry — the list was
+    // page-through-everything-or-nothing (QA #276).
+    const resolved = await searchParams;
+    const first = (key: string) => {
+      const value = resolved[key];
+      const single = Array.isArray(value) ? value[0] : value;
+      return typeof single === "string" && single.trim() ? single.trim() : undefined;
+    };
+    const tableName = first("tableName");
+    const affectedId = first("affectedId");
+    if (tableName) params.append("tableName", tableName);
+    if (affectedId) {
+      // The API rejects a malformed id with a 400, which would surface as a
+      // crashed page. No record can carry an id that is not a UUID, so the
+      // honest answer to a typo is simply "nothing matched".
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(affectedId)) {
+        return { data: [], totalCount: 0 };
+      }
+      params.append("affectedId", affectedId);
+    }
+
     const response = await apiGet<{ success: boolean; data: any[]; totalCount: number }>(
       `/api/history/paginate?${params.toString()}`,
       { token }

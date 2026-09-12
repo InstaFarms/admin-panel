@@ -1,14 +1,20 @@
 import Pagination from "@/components/Pagination";
 import { parseLimitOffset } from "@/utils/server-utils";
 import { ServerPageProps } from "@/utils/types";
-import { Button, Card, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from "flowbite-react";
+import { Button, Card, Label, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TextInput } from "flowbite-react";
 import Link from "next/link";
 import { HiEye } from "react-icons/hi";
 import { getTableHistory } from "@/actions/historyActions";
 
 export default async function TableHistoryPage({ searchParams }: ServerPageProps) {
-  const { limit, offset } = parseLimitOffset(await searchParams);
-  
+  const resolvedSearchParams = await searchParams;
+  const { limit, offset } = parseLimitOffset(resolvedSearchParams);
+
+  const asString = (value: string | string[] | undefined) =>
+    (Array.isArray(value) ? value[0] : value) ?? "";
+  const tableNameFilter = asString(resolvedSearchParams.tableName);
+  const affectedIdFilter = asString(resolvedSearchParams.affectedId);
+
   const { data: historyData, totalCount } = await getTableHistory(searchParams);
 
   return (
@@ -33,6 +39,46 @@ export default async function TableHistoryPage({ searchParams }: ServerPageProps
           </div>
         </div>
 
+        {/*
+          Table History carries tens of thousands of rows and no date column,
+          so before this there was no way to reach a particular entry: nothing
+          to search by and nothing to sort by. Both columns are indexed.
+        */}
+        <form className="mb-4 grid gap-3 rounded-xl bg-slate-100 p-4 sm:grid-cols-3 dark:bg-gray-900">
+          <div>
+            <Label htmlFor="tableName">Table name</Label>
+            <TextInput
+              id="tableName"
+              name="tableName"
+              placeholder="e.g. properties"
+              defaultValue={tableNameFilter}
+            />
+          </div>
+          <div>
+            <Label htmlFor="affectedId">Affected record ID</Label>
+            <TextInput
+              id="affectedId"
+              name="affectedId"
+              placeholder="UUID of the changed row"
+              defaultValue={affectedIdFilter}
+            />
+          </div>
+          <div className="flex items-end gap-2">
+            <button
+              type="submit"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-800"
+            >
+              Apply Filters
+            </button>
+            <Link
+              href="/admin/history"
+              className="inline-flex w-full items-center justify-center rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              Clear
+            </Link>
+          </div>
+        </form>
+
         {/* Table */}
         <div className="w-full table-auto overflow-x-auto rounded-xl bg-slate-100 p-5 dark:bg-gray-900">
           <Table>
@@ -44,8 +90,8 @@ export default async function TableHistoryPage({ searchParams }: ServerPageProps
                 <TableHeadCell>Changed By User</TableHeadCell>
                 <TableHeadCell>Table Name</TableHeadCell>
                 <TableHeadCell>Operation Type</TableHeadCell>
-                {/* <TableHeadCell>Affected Record</TableHeadCell>
-                <TableHeadCell>Date</TableHeadCell> */}
+                <TableHeadCell>Affected Record</TableHeadCell>
+                {/* <TableHeadCell>Date</TableHeadCell> */}
                 <TableHeadCell>Actions</TableHeadCell>
               </TableRow>
             </TableHead>
@@ -79,9 +125,12 @@ export default async function TableHistoryPage({ searchParams }: ServerPageProps
                       {record.operation}
                     </span>
                   </TableCell>
-                  {/* <TableCell className="font-mono text-xs">
-                    {record.affectedId ? record.affectedId.substring(0, 8) + '...' : 'N/A'}
-                  </TableCell> */}
+                  {/* Shown so the "Affected record ID" filter above has
+                      something to read off a row, instead of being a field you
+                      can only fill in if you already know the answer. */}
+                  <TableCell className="font-mono text-xs">
+                    {record.affectedId || 'N/A'}
+                  </TableCell>
                   {/* <TableCell className="text-sm">
                     {record.createdAt ? new Date(record.createdAt).toLocaleString() : 'N/A'}
                   </TableCell> */}
@@ -99,7 +148,7 @@ export default async function TableHistoryPage({ searchParams }: ServerPageProps
               {/* Empty State */}
               {historyData.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-gray-500 py-8">
+                  <TableCell colSpan={8} className="text-center text-gray-500 py-8">
                     No table history records found
                   </TableCell>
                 </TableRow>
