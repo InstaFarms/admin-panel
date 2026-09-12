@@ -2127,6 +2127,12 @@ export const downloadBookings = async (params: {
   bookingDateFrom?: string;
   bookingDateTo?: string;
   bookingSource?: string;
+  /**
+   * Which brand to export. The API resolves the brand from the app-type
+   * header, and this sent none — so the screen silently exported Instafarms
+   * only, with no way to reach Mago bookings at all.
+   */
+  appType?: "INSTAFARMS_ADMIN" | "MAGO_ADMIN";
 }) => {
   try {
     const admin = await isAdmin();
@@ -2154,7 +2160,10 @@ export const downloadBookings = async (params: {
 
     console.log('[Admin Panel] Downloading bookings via API: /api/booking/admin/download');
 
-    const result = await apiPost("/api/booking/admin/download", requestBody, { token });
+    const result = await apiPost("/api/booking/admin/download", requestBody, {
+      token,
+      ...(params.appType ? { appType: params.appType } : {}),
+    });
 
     if (!result.success) {
       throw new Error(result.message || BOOKINGS_ERRORS.downloadFailed);

@@ -59,6 +59,16 @@ export default function DownloadBookingsForm() {
   const [bookingDateFrom, setBookingDateFrom] = useState<Date | null>(null);
   const [bookingDateTo, setBookingDateTo] = useState<Date | null>(null);
   const [bookingSource, setBookingSource] = useState<string>("");
+  /*
+   * Which brand to export.
+   *
+   * The download endpoint resolves the brand from the app-type header and this
+   * action sent none, so it always defaulted to INSTAFARMS_ADMIN: the screen
+   * could only ever export Instafarms bookings, with nothing on screen saying
+   * so. (It previously returned every brand's rows because the brand filter
+   * fell open entirely — the cross-brand leak fixed under QA #121.)
+   */
+  const [brand, setBrand] = useState<"INSTAFARMS_ADMIN" | "MAGO_ADMIN">("INSTAFARMS_ADMIN");
   const [isDownloading, setIsDownloading] = useState(false);
 
   const getLocalDateString = (date: Date) => {
@@ -109,6 +119,7 @@ export default function DownloadBookingsForm() {
       if (bookingSource) {
         params.bookingSource = bookingSource;
       }
+      params.appType = brand;
 
       const result = await downloadBookings(params);
 
@@ -166,6 +177,23 @@ export default function DownloadBookingsForm() {
     <div className="space-y-6">
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <Label htmlFor="downloadBrand" className="mb-2 block">
+            Brand <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            id="downloadBrand"
+            value={brand}
+            onChange={(e) => setBrand(e.target.value as "INSTAFARMS_ADMIN" | "MAGO_ADMIN")}
+          >
+            <option value="INSTAFARMS_ADMIN">Instafarms</option>
+            <option value="MAGO_ADMIN">Mago</option>
+          </Select>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            The export covers one brand at a time.
+          </p>
+        </div>
+
         {/* Filter Type Selection */}
         <div>
           <Label htmlFor="filterType" className="mb-2 block">
