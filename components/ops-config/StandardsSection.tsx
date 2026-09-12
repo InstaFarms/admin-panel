@@ -38,6 +38,7 @@ import {
   TableRow,
   TextInput,
   Textarea,
+  ToggleSwitch,
 } from "flowbite-react";
 import {
   HiOutlineClipboardCheck,
@@ -1353,12 +1354,34 @@ function StandardsCard({
                           {entry.executionProfileId}
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            color={entry.enabled ? "success" : "gray"}
-                            className="inline-flex w-fit"
-                          >
-                            {entry.enabled ? "enabled" : "disabled"}
-                          </Badge>
+                          {/*
+                            This used to be a read-only Badge, which meant the
+                            "disabled" state it renders was unreachable: the
+                            only writer was "Save entry" below, and that always
+                            sends enabled: true. So an entry could never be
+                            switched off from the panel, and the Schedules tab's
+                            "entry disabled in standard" warning could never
+                            appear (QA #109). The API has always accepted the
+                            flag — only the control was missing.
+                          */}
+                          <ToggleSwitch
+                            checked={entry.enabled}
+                            disabled={busy}
+                            label={entry.enabled ? "enabled" : "disabled"}
+                            onChange={() =>
+                              runAction(
+                                setStandardEntry({
+                                  standardId: detail.id,
+                                  operationId: entry.operationId,
+                                  executionProfileId: entry.executionProfileId,
+                                  enabled: !entry.enabled,
+                                }),
+                                entry.enabled
+                                  ? "Disabling entry..."
+                                  : "Enabling entry...",
+                              )
+                            }
+                          />
                         </TableCell>
                       </TableRow>
                     );
