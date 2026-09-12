@@ -1,7 +1,7 @@
 "use server";
 
 import { ListObjectsV2Command } from "@aws-sdk/client-s3";
-import { isAdmin } from "@/utils/admin-only";
+import { isAdmin, requireAdminPermission } from "@/utils/admin-only";
 import { resolveHetznerTarget, type HetznerBucketKey } from "@/lib/hetzner-s3";
 import { captureError } from "@/lib/sentry";
 
@@ -30,6 +30,10 @@ export async function listHetznerObjects(
   try {
     const admin = await isAdmin();
     if (!admin) return { error: "Unauthorized" };
+    // Raw object storage is sensitive infrastructure: being A logged-in admin
+    // is not enough. Gated on PROPERTY_DATA, the non-brand-scoped content key —
+    // these buckets hold both brands' media (QA #274).
+    await requireAdminPermission("PROPERTY_DATA", "view");
 
     const { bucket: Bucket, client } = resolveHetznerTarget(bucketKey);
     const res = await client.send(

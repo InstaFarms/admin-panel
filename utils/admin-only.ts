@@ -165,8 +165,10 @@ export async function requireAdminPermission(
     (action === "view" && !state.canView) ||
     (action === "edit" && !state.canEdit)
   ) {
+    // The message used to name "Wallet & Settlements" for EVERY permission key,
+    // so an admin denied anything else was told the wrong reason.
     throw new Error(
-      "You do not have permission to access Wallet & Settlements.",
+      `You do not have ${action} permission for ${permissionKey.replace(/_/g, " ").toLowerCase()}.`,
     );
   }
   return state.admin;

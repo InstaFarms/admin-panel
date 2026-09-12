@@ -656,6 +656,10 @@ export const SIDEBAR_NAV: SidebarNavEntry[] = [
   group({
     label: "Bucket Browsers",
     icon: HiOutlineCloudArrowUp,
+    // Raw object storage carried no permission key at all, so the group was
+    // visible to every admin — and the server actions behind it only checked
+    // "is a logged-in admin". Both are now gated on PROPERTY_DATA (QA #274).
+    permissionKey: "PROPERTY_DATA",
     items: [
       {
         href: "/admin/hetzner-browser",

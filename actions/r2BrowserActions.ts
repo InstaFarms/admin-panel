@@ -8,7 +8,7 @@ import {
   CopyObjectCommand,
   type S3Client,
 } from "@aws-sdk/client-s3";
-import { isAdmin } from "@/utils/admin-only";
+import { isAdmin, requireAdminPermission } from "@/utils/admin-only";
 import { resolveR2Target, type R2BucketKey } from "@/lib/r2-s3";
 import { captureError } from "@/lib/sentry";
 
@@ -25,6 +25,10 @@ export async function verifyR2BrowserPin(pin: string): Promise<{ success?: true;
   try {
     const admin = await isAdmin();
     if (!admin) return { error: "Unauthorized" };
+    // Raw object storage is sensitive infrastructure: being A logged-in admin
+    // is not enough. Gated on PROPERTY_DATA, the non-brand-scoped content key —
+    // these buckets hold both brands' media (QA #274).
+    await requireAdminPermission("PROPERTY_DATA", "view");
 
     const expected = process.env.R2_BROWSER_PIN;
     if (!expected) return { error: "R2 bucket browser PIN is not configured." };
@@ -59,6 +63,10 @@ export async function createR2Folder(
   try {
     const admin = await isAdmin();
     if (!admin) return { error: "Unauthorized" };
+    // Raw object storage is sensitive infrastructure: being A logged-in admin
+    // is not enough. Gated on PROPERTY_DATA, the non-brand-scoped content key —
+    // these buckets hold both brands' media (QA #274).
+    await requireAdminPermission("PROPERTY_DATA", "edit");
     if (!folderPrefix || !folderPrefix.endsWith("/")) return { error: "Invalid folder path" };
 
     const { bucket: Bucket, client } = resolveR2Target(bucketKey);
@@ -81,6 +89,10 @@ export async function listR2Objects(
   try {
     const admin = await isAdmin();
     if (!admin) return { error: "Unauthorized" };
+    // Raw object storage is sensitive infrastructure: being A logged-in admin
+    // is not enough. Gated on PROPERTY_DATA, the non-brand-scoped content key —
+    // these buckets hold both brands' media (QA #274).
+    await requireAdminPermission("PROPERTY_DATA", "view");
 
     const { bucket: Bucket, client } = resolveR2Target(bucketKey);
     const res = await client.send(
@@ -127,6 +139,10 @@ export async function listAllR2ObjectKeys(
   try {
     const admin = await isAdmin();
     if (!admin) return { error: "Unauthorized" };
+    // Raw object storage is sensitive infrastructure: being A logged-in admin
+    // is not enough. Gated on PROPERTY_DATA, the non-brand-scoped content key —
+    // these buckets hold both brands' media (QA #274).
+    await requireAdminPermission("PROPERTY_DATA", "view");
 
     const { bucket: Bucket, client } = resolveR2Target(bucketKey);
     const keys: string[] = [];
@@ -178,6 +194,10 @@ export async function deleteR2Object(
   try {
     const admin = await isAdmin();
     if (!admin) return { error: "Unauthorized" };
+    // Raw object storage is sensitive infrastructure: being A logged-in admin
+    // is not enough. Gated on PROPERTY_DATA, the non-brand-scoped content key —
+    // these buckets hold both brands' media (QA #274).
+    await requireAdminPermission("PROPERTY_DATA", "edit");
     if (!key) return { error: "Missing key" };
 
     const { bucket: Bucket, client } = resolveR2Target(bucketKey);
@@ -199,6 +219,10 @@ export async function deleteR2Folder(
   try {
     const admin = await isAdmin();
     if (!admin) return { error: "Unauthorized" };
+    // Raw object storage is sensitive infrastructure: being A logged-in admin
+    // is not enough. Gated on PROPERTY_DATA, the non-brand-scoped content key —
+    // these buckets hold both brands' media (QA #274).
+    await requireAdminPermission("PROPERTY_DATA", "edit");
     if (!prefix) return { error: "Missing prefix" };
 
     const { bucket: Bucket, client } = resolveR2Target(bucketKey);
@@ -236,6 +260,10 @@ export async function renameR2Object(
   try {
     const admin = await isAdmin();
     if (!admin) return { error: "Unauthorized" };
+    // Raw object storage is sensitive infrastructure: being A logged-in admin
+    // is not enough. Gated on PROPERTY_DATA, the non-brand-scoped content key —
+    // these buckets hold both brands' media (QA #274).
+    await requireAdminPermission("PROPERTY_DATA", "edit");
     if (!oldKey || !newKey) return { error: "Missing key" };
     if (oldKey === newKey) return { success: true };
 
@@ -263,6 +291,10 @@ export async function renameR2Folder(
   try {
     const admin = await isAdmin();
     if (!admin) return { error: "Unauthorized" };
+    // Raw object storage is sensitive infrastructure: being A logged-in admin
+    // is not enough. Gated on PROPERTY_DATA, the non-brand-scoped content key —
+    // these buckets hold both brands' media (QA #274).
+    await requireAdminPermission("PROPERTY_DATA", "edit");
     if (!oldPrefix || !newPrefix) return { error: "Missing prefix" };
     if (oldPrefix === newPrefix) return { data: { renamedCount: 0, errors: [] } };
 
