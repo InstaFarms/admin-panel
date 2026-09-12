@@ -1,6 +1,7 @@
 import { Card } from "flowbite-react";
 import { notFound } from "next/navigation";
 import { getHistoryById } from "@/actions/historyActions";
+import PageBreadcrumb from "@/components/PageBreadcrumb";
 import { formatAdminDateTime } from "@/lib/dateUtils";
 
 interface PageProps {
@@ -29,10 +30,22 @@ export default async function TableHistoryDetailPage({ params }: PageProps) {
     createdBy: data?.createdBy || data?.adminCreatedBy,
     updatedBy: data?.updatedBy || data?.adminUpdatedBy,
   };
+  // This page had no breadcrumb at all, unlike every other detail screen in the
+  // panel, so there was no way back to the History list and no indication of
+  // where in the app you were (QA #277). The last crumb names the record's own
+  // table, which is what distinguishes one history entry from another.
+  const breadcrumbs = [
+    { href: "/", label: "Home" },
+    { href: "/admin", label: "Admin" },
+    { href: "/admin/history", label: "History" },
+    { href: "#", label: record.tableName || "Entry" },
+  ];
+
   return (
     <div className="space-y-6">
         {/* Header - same as before */}
         <Card>
+        <PageBreadcrumb items={breadcrumbs} className="mb-3" />
         <h5 className="text-xl font-bold">Table History Details</h5>
         {/* ... header content ... */}
         <div className="grid grid-cols-2 gap-6">
