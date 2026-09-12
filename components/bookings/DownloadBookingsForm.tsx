@@ -47,7 +47,22 @@ function bookingToRow(record: Record<string, unknown>): Record<string, any> {
     "Created At": record.createdAt ?? "",
     "Created By": creatorName,
     "Creator Email": creator.email ?? "",
-    "Cancelled": cancel.id != null ? "Yes" : "No",
+    /*
+     * Cancelled reflects the BOOKING'S STATUS, not merely whether a
+     * cancellation record was found.
+     *
+     * It used to read `cancel.id != null`, so a booking cancelled without a
+     * booking_cancellation row exported "Cancelled: No" on the very same line
+     * as "Status: CANCELLED" — a row that contradicts itself, and one an
+     * accountant reading the export would take at face value. At least one such
+     * booking exists (BINSHXX000001).
+     *
+     * The record is still what supplies the refund figures below: no record
+     * genuinely means no refund was computed, and those cells stay blank rather
+     * than inventing a zero.
+     */
+    "Cancelled":
+      String(record.status ?? "").toUpperCase() === "CANCELLED" || cancel.id != null ? "Yes" : "No",
     "Refund Amount": cancel.refundAmount ?? "",
     "Refund Status": cancel.refundStatus ?? "",
   };
