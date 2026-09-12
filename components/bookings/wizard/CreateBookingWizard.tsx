@@ -694,6 +694,16 @@ export default function CreateBookingWizard({
             window.localStorage.removeItem(DRAFT_KEY);
           } catch {}
         }
+      } catch (err) {
+        // There was no catch here at all, only a finally. Every branch above
+        // handles res.error, but an actual THROW -- a server action that fails
+        // at the boundary, a bad payload built before the call -- escaped the
+        // async IIFE entirely: no toast, no step change, the button simply went
+        // back to being clickable. Clicking Create and having nothing whatsoever
+        // happen is the worst possible failure for this screen, and it is what
+        // QA #139 hit on the OTA path.
+        console.error("[Reservation wizard] create failed:", err);
+        toast(err instanceof Error ? err.message : "Something went wrong. Nothing was created.");
       } finally {
         setSubmitting(false);
       }
